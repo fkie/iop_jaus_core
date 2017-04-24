@@ -1,0 +1,12 @@
+<library path="libiop_accesscontrol_1_0_fkie">
+  <class name="urn:jaus:jss:core:AccessControl_1_0" type="iop::AccessControlPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      AccessControl Service Plugin
+    </description>
+  </class>
+  <class name="urn:jaus:jss:core:AccessControlClient_1_0" type="iop::AccessControlClientPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      AccessControl client Service Plugin, used e.g. by OCU
+    </description>
+  </class>
+</library>

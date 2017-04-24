@@ -1,0 +1,12 @@
+<launch>
+  <arg name="ns" default="telemax"/>
+  <arg name="id_subsystem" default="127"/>
+  <arg name="id_node" default="64"/>
+  <group ns="$(arg ns)">
+    <node respawn="false" pkg="iop_discovery_1_0_fkie" type="iop_discovery_client_1_0" name="iop_discovery_client" >
+      <param name="capability_group" value="iop_bridge"/>
+      <param name="iop_address" value="$(arg id_subsystem).$(arg id_node).200"/>
+      <param name="register_own_services" value="false"/>
+    </node>
+  </group>
+</launch>

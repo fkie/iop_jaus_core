@@ -1,0 +1,12 @@
+<library path="libiop_management_1_0_fkie">
+  <class name="urn:jaus:jss:core:Management_1_0" type="iop::ManagementPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      Management Service Plugin
+    </description>
+  </class>
+  <class name="urn:jaus:jss:core:ManagementClient_1_0" type="iop::ManagementClientPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      Management client Service Plugin, used e.g. by OCU
+    </description>
+  </class>
+</library>

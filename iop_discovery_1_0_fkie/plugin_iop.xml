@@ -1,0 +1,12 @@
+<library path="libiop_discovery_1_0_fkie">
+  <class name="urn:jaus:jss:core:Discovery_1_0" type="iop::DiscoveryPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      AccessControl Service Plugin
+    </description>
+  </class>
+  <class name="urn:jaus:jss:core:DiscoveryClient_1_0" type="iop::DiscoveryClientPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      AccessControl client Service Plugin, used e.g. by OCU
+    </description>
+  </class>
+</library>

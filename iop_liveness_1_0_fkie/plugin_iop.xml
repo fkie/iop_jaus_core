@@ -1,0 +1,7 @@
+<library path="libiop_liveness_1_0_fkie">
+  <class name="urn:jaus:jss:core:Liveness_1_0" type="iop::LivenessPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      Liveness Service Plugin
+    </description>
+  </class>
+</library>

@@ -1,0 +1,12 @@
+<library path="libiop_events_1_0_fkie">
+  <class name="urn:jaus:jss:core:Events_1_0" type="iop::EventsPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      Events Service Plugin
+    </description>
+  </class>
+  <class name="urn:jaus:jss:core:EventsClient_1_0" type="iop::EventsClientPlugin_1_0" base_class_type="iop::PluginInterface">
+    <description>
+      Events client Service Plugin, used e.g. by OCU
+    </description>
+  </class>
+</library>
