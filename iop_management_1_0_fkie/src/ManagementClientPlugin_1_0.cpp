@@ -38,32 +38,16 @@ ManagementClientPlugin_1_0::ManagementClientPlugin_1_0()
 	p_transport_service = NULL;
 }
 
-ManagementClientPlugin_1_0::~ManagementClientPlugin_1_0()
-{
-
-}
-
-JTS::Service* ManagementClientPlugin_1_0::get_iop_service()
+JTS::Service* ManagementClientPlugin_1_0::get_service()
 {
 	return p_my_service;
 }
 
-const std::type_info & ManagementClientPlugin_1_0::get_iop_service_type()
+void ManagementClientPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
 {
-	return typeid(ManagementClientService);
-}
-
-const std::type_info & ManagementClientPlugin_1_0::get_base_service_type()
-{
-	return typeid(AccessControlClientService);
-}
-
-
-void ManagementClientPlugin_1_0::create_jts_service(JTS::JausRouter* jaus_router)
-{
-	p_base_service = dynamic_cast<AccessControlClientService *>(get_base_service());
-	p_events_service = dynamic_cast<EventsClientService *>(get_base_service(2));
-	p_transport_service = dynamic_cast<TransportService *>(get_base_service(3));
+	p_base_service = static_cast<AccessControlClientService *>(get_base_service());
+	p_events_service = static_cast<EventsClientService *>(get_base_service(2));
+	p_transport_service = static_cast<TransportService *>(get_base_service(3));
 	p_my_service = new ManagementClientService(jaus_router, p_transport_service, p_events_service, p_base_service);
 }
 

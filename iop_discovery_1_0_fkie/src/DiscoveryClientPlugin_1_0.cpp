@@ -44,35 +44,25 @@ DiscoveryClientPlugin_1_0::~DiscoveryClientPlugin_1_0()
 
 }
 
-JTS::Service* DiscoveryClientPlugin_1_0::get_iop_service()
+JTS::Service* DiscoveryClientPlugin_1_0::get_service()
 {
 	return p_my_service;
 }
 
-const std::type_info & DiscoveryClientPlugin_1_0::get_iop_service_type()
+void DiscoveryClientPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
 {
-	return typeid(DiscoveryClientService);
-}
-
-const std::type_info & DiscoveryClientPlugin_1_0::get_base_service_type()
-{
-	return typeid(EventsClientService);
-}
-
-
-void DiscoveryClientPlugin_1_0::create_jts_service(JTS::JausRouter* jaus_router)
-{
-	p_base_service = dynamic_cast<EventsClientService *>(get_base_service());
-	p_transport_service = dynamic_cast<TransportService *>(get_base_service(2));
+	p_base_service = static_cast<EventsClientService *>(get_base_service());
+	p_transport_service = static_cast<TransportService *>(get_base_service(2));
 	p_my_service = new DiscoveryClientService(jaus_router, p_transport_service, p_base_service);
 }
 
-void DiscoveryClientPlugin_1_0::init_jts_service()
+void DiscoveryClientPlugin_1_0::init_service()
 {
 	iop::Component &cmp = iop::Component::get_instance();
-	DiscoveryService *discovery_srv = dynamic_cast<DiscoveryService*>(cmp.get_service(typeid(DiscoveryService)));
-	if (discovery_srv != NULL)
+	DiscoveryService *discovery_srv = static_cast<DiscoveryService*>(cmp.get_service("Discovery"));
+	if (discovery_srv != NULL) {
 		p_my_service->pDiscoveryClient_ReceiveFSM->setDiscoveryFSM(discovery_srv->pDiscovery_ReceiveFSM);
+	}
 }
 
 void DiscoveryClientPlugin_1_0::register_service(PluginInterface *plugin)

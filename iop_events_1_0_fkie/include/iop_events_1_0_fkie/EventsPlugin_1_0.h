@@ -37,15 +37,8 @@ class DllExport EventsPlugin_1_0 : public PluginInterface
 public:
 	EventsPlugin_1_0();
 
-	JTS::Service* get_iop_service();
-	const std::type_info & get_iop_service_type();
-	const std::type_info & get_base_service_type();
-	void create_jts_service(JTS::JausRouter* jaus_router);
-	virtual ~EventsPlugin_1_0();
-
-	jVariableLengthString get_service_uri() { return "urn:jaus:jss:core:Events"; }
-	jUnsignedByte get_version_number_major() { return 1; }
-	jUnsignedByte get_version_number_minor() { return 0; }
+	JTS::Service* get_service();
+	void create_service(JTS::JausRouter* jaus_router);
 
 protected:
 	urn_jaus_jss_core_Events_1_0::EventsService *p_my_service;

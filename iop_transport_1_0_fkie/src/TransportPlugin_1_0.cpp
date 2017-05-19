@@ -32,27 +32,12 @@ TransportPlugin_1_0::TransportPlugin_1_0()
 	p_my_service = NULL;
 }
 
-TransportPlugin_1_0::~TransportPlugin_1_0()
-{
-
-}
-
-JTS::Service* TransportPlugin_1_0::get_iop_service()
+JTS::Service* TransportPlugin_1_0::get_service()
 {
 	return p_my_service;
 }
 
-const std::type_info & TransportPlugin_1_0::get_iop_service_type()
-{
-	return typeid(TransportService);
-}
-
-const std::type_info & TransportPlugin_1_0::get_base_service_type()
-{
-	return typeid(NULL);
-}
-
-void TransportPlugin_1_0::create_jts_service(JTS::JausRouter* jaus_router)
+void TransportPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
 {
 	p_my_service = new TransportService(jaus_router);
 }

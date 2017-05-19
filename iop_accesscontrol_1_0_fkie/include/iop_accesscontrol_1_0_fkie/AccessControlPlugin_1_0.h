@@ -17,15 +17,8 @@ class DllExport AccessControlPlugin_1_0 : public PluginInterface
 public:
 	AccessControlPlugin_1_0();
 
-	JTS::Service* get_iop_service();
-	const std::type_info & get_iop_service_type();
-	const std::type_info & get_base_service_type();
-	void create_jts_service(JTS::JausRouter* jaus_router);
-	virtual ~AccessControlPlugin_1_0();
-
-	jVariableLengthString get_service_uri() { return "urn:jaus:jss:core:AccessControl"; }
-	jUnsignedByte get_version_number_major() { return 1; }
-	jUnsignedByte get_version_number_minor() { return 0; }
+	JTS::Service* get_service();
+	void create_service(JTS::JausRouter* jaus_router);
 
 protected:
 	urn_jaus_jss_core_AccessControl_1_0::AccessControlService *p_my_service;

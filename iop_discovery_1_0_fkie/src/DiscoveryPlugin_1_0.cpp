@@ -36,31 +36,15 @@ DiscoveryPlugin_1_0::DiscoveryPlugin_1_0()
 	p_base_service = NULL;
 }
 
-DiscoveryPlugin_1_0::~DiscoveryPlugin_1_0()
-{
-
-}
-
-JTS::Service* DiscoveryPlugin_1_0::get_iop_service()
+JTS::Service* DiscoveryPlugin_1_0::get_service()
 {
 	return p_my_service;
 }
 
-const std::type_info & DiscoveryPlugin_1_0::get_iop_service_type()
+void DiscoveryPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
 {
-	return typeid(DiscoveryService);
-}
-
-const std::type_info & DiscoveryPlugin_1_0::get_base_service_type()
-{
-	return typeid(EventsService);
-}
-
-
-void DiscoveryPlugin_1_0::create_jts_service(JTS::JausRouter* jaus_router)
-{
-	p_base_service = dynamic_cast<EventsService *>(get_base_service());
-	p_transport_service = dynamic_cast<TransportService *>(get_base_service(2));
+	p_base_service = static_cast<EventsService *>(get_base_service());
+	p_transport_service = static_cast<TransportService *>(get_base_service(2));
 	p_my_service = new DiscoveryService(jaus_router, p_transport_service, p_base_service);
 }
 

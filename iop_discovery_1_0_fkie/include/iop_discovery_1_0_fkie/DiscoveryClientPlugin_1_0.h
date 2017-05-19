@@ -37,17 +37,11 @@ class DllExport DiscoveryClientPlugin_1_0 : public PluginInterface
 {
 public:
 	DiscoveryClientPlugin_1_0();
+	~DiscoveryClientPlugin_1_0();
 
-	JTS::Service* get_iop_service();
-	const std::type_info & get_iop_service_type();
-	const std::type_info & get_base_service_type();
-	void create_jts_service(JTS::JausRouter* jaus_router);
-	void init_jts_service();
-	virtual ~DiscoveryClientPlugin_1_0();
-
-	jVariableLengthString get_service_uri() { return "urn:jaus:jss:core:DiscoveryClient"; }
-	jUnsignedByte get_version_number_major() { return 1; }
-	jUnsignedByte get_version_number_minor() { return 0; }
+	JTS::Service* get_service();
+	void create_service(JTS::JausRouter* jaus_router);
+	void init_service();
 
 	bool is_discovery_client() { return true; }
 	void register_service(PluginInterface *plugin);

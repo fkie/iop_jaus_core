@@ -32,30 +32,14 @@ EventsClientPlugin_1_0::EventsClientPlugin_1_0()
 	p_my_service = NULL;
 }
 
-EventsClientPlugin_1_0::~EventsClientPlugin_1_0()
-{
-
-}
-
-JTS::Service* EventsClientPlugin_1_0::get_iop_service()
+JTS::Service* EventsClientPlugin_1_0::get_service()
 {
 	return p_my_service;
 }
 
-const std::type_info & EventsClientPlugin_1_0::get_iop_service_type()
+void EventsClientPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
 {
-	return typeid(EventsClientService);
-}
-
-const std::type_info & EventsClientPlugin_1_0::get_base_service_type()
-{
-	return typeid(TransportService);
-}
-
-
-void EventsClientPlugin_1_0::create_jts_service(JTS::JausRouter* jaus_router)
-{
-	p_my_service = new EventsClientService(jaus_router, dynamic_cast<TransportService *>(get_base_service()));
+	p_my_service = new EventsClientService(jaus_router, static_cast<TransportService *>(get_base_service()));
 }
 
 PLUGINLIB_EXPORT_CLASS(iop::EventsClientPlugin_1_0, iop::PluginInterface)

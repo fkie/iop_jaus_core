@@ -15,31 +15,15 @@ AccessControlPlugin_1_0::AccessControlPlugin_1_0()
 	p_base_service = NULL;
 }
 
-AccessControlPlugin_1_0::~AccessControlPlugin_1_0()
-{
-
-}
-
-JTS::Service* AccessControlPlugin_1_0::get_iop_service()
+JTS::Service* AccessControlPlugin_1_0::get_service()
 {
 	return p_my_service;
 }
 
-const std::type_info & AccessControlPlugin_1_0::get_iop_service_type()
+void AccessControlPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
 {
-	return typeid(AccessControlService);
-}
-
-const std::type_info & AccessControlPlugin_1_0::get_base_service_type()
-{
-	return typeid(EventsService);
-}
-
-
-void AccessControlPlugin_1_0::create_jts_service(JTS::JausRouter* jaus_router)
-{
-	p_base_service = dynamic_cast<EventsService *>(get_base_service());
-	p_transport_service = dynamic_cast<TransportService *>(get_base_service(2));
+	p_base_service = static_cast<EventsService *>(get_base_service());
+	p_transport_service = static_cast<TransportService *>(get_base_service(2));
 	p_my_service = new AccessControlService(jaus_router, p_transport_service, p_base_service);
 }
 
