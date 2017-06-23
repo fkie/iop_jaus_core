@@ -39,7 +39,7 @@ typedef JTS::Send Send;
 
 
 #include "DiscoveryClient_ReceiveFSM_sm.h"
-#include "iop_discovery_fkie/DiscoveryConfig.h"
+#include "DiscoveryConfig.h"
 #include "urn_jaus_jss_core_Discovery/Discovery_ReceiveFSM.h"
 
 #include <boost/bind.hpp>
