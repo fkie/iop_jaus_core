@@ -1,0 +1,110 @@
+/**
+ROS/IOP Bridge
+Copyright (c) 2017 Fraunhofer
+
+This program is dual licensed; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+version 2 as published by the Free Software Foundation, or
+enter into a proprietary license agreement with the copyright
+holder.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; or you can read the full license at
+<http://www.gnu.de/documents/gpl-2.0.html>
+*/
+
+/** \author Alexander Tiderko */
+
+
+#ifndef MANAGEMENT_RECEIVEFSM_H
+#define MANAGEMENT_RECEIVEFSM_H
+
+#include "JausUtils.h"
+#include "InternalEvents/InternalEventHandler.h"
+#include "Transport/JausTransport.h"
+#include "JTSStateMachine.h"
+#include "urn_jaus_jss_core_Management/Messages/MessageSet.h"
+#include "urn_jaus_jss_core_Management/InternalEvents/InternalEventsSet.h"
+
+typedef JTS::Receive Receive;
+typedef JTS::Send Send;
+
+#include "urn_jaus_jss_core_Transport/Transport_ReceiveFSM.h"
+#include "urn_jaus_jss_core_Events/Events_ReceiveFSM.h"
+#include "urn_jaus_jss_core_AccessControl/AccessControl_ReceiveFSM.h"
+
+
+#include "Management_ReceiveFSM_sm.h"
+
+namespace urn_jaus_jss_core_Management
+{
+/**
+ * Internal status, see StatusReport
+ **/
+const int STATE_INITIALIZE = 0;
+const int STATE_READY = 1;
+const int STATE_STANDBY = 2;
+const int STATE_SHUTDOWN = 3;
+const int STATE_FAILURE = 4;
+const int STATE_EMERGENCY = 5;
+
+class DllExport Management_ReceiveFSM : public JTS::StateMachine
+{
+public:
+	Management_ReceiveFSM(urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM, urn_jaus_jss_core_Events::Events_ReceiveFSM* pEvents_ReceiveFSM, urn_jaus_jss_core_AccessControl::AccessControl_ReceiveFSM* pAccessControl_ReceiveFSM);
+	virtual ~Management_ReceiveFSM();
+
+	/// Handle notifications on parent state changes
+	virtual void setupNotifications();
+
+	/// Action Methods
+	virtual void deleteIDAction(Receive::Body::ReceiveRec transportData);
+	virtual void emergencyAction();
+	virtual void goReadyAction();
+	virtual void goStandbyAction();
+	virtual void initializeAction();
+	virtual void readyAction();
+	virtual void resetEmergency2Action();
+	virtual void resetEmergencyAction();
+	virtual void resetReadyAction();
+//	virtual void resetTimerAction();
+	virtual void sendConfirmControlAction(RequestControl msg, std::string arg0, Receive::Body::ReceiveRec transportData);
+	virtual void sendRejectControlAction(ReleaseControl msg, std::string arg0, Receive::Body::ReceiveRec transportData);
+	virtual void sendRejectControlAction(Reset msg, std::string arg0, Receive::Body::ReceiveRec transportData);
+	virtual void sendRejectControlAction(Shutdown msg, std::string arg0, Receive::Body::ReceiveRec transportData);
+	virtual void sendRejectControlToControllerAction(std::string arg0);
+	virtual void sendReportStatusAction(QueryStatus msg, Receive::Body::ReceiveRec transportData);
+	virtual void shutdownAction();
+	virtual void standbyAction();
+	virtual void storeIDAction(Receive::Body::ReceiveRec transportData);
+	virtual void popWrapper_969061f59e4133739162ff20066e48e8(ClearEmergency msg, Receive::Body::ReceiveRec transportData);
+	virtual void popWrapper_7380ba82ef323169a2dfdd5168317610(ClearEmergency msg, Receive::Body::ReceiveRec transportData);
+
+
+        /// Guard Methods
+	virtual bool isControllingClient(Receive::Body::ReceiveRec transportData);
+	virtual bool isIDStored(Receive::Body::ReceiveRec transportData);
+
+
+
+	Management_ReceiveFSMContext *context;
+
+protected:
+
+    /// References to parent FSMs
+	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
+	urn_jaus_jss_core_Events::Events_ReceiveFSM* pEvents_ReceiveFSM;
+	urn_jaus_jss_core_AccessControl::AccessControl_ReceiveFSM* pAccessControl_ReceiveFSM;
+
+        std::vector<JausAddress> p_emergency_clients;
+        int getStateID();
+};
+
+};
+
+#endif // MANAGEMENT_RECEIVEFSM_H
