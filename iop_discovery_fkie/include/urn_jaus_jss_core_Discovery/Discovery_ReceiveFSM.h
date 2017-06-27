@@ -40,7 +40,7 @@ typedef JTS::Send Send;
 
 #include "Discovery_ReceiveFSM_sm.h"
 #include "SimpleThread.h"
-#include "DiscoveryConfig.h"
+#include <iop_discovery_fkie/DiscoveryConfig.h>
 
 #define RS_SSList ReportServiceList::Body::SubsystemList
 #define RS_NList  RS_SSList::SubsystemSeq::NodeList

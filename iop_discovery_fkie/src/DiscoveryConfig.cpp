@@ -21,7 +21,7 @@ along with this program; or you can read the full license at
 /** \author Alexander Tiderko */
 
 
-#include "DiscoveryConfig.h"
+#include <iop_discovery_fkie/DiscoveryConfig.h>
 #include <ros/ros.h>
 #include <ros/console.h>
 

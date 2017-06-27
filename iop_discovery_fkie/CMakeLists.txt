@@ -16,7 +16,7 @@ iop_export_service(urn_jaus_jss_core_Discovery
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-    INCLUDE_DIRS include/${PROJECT_NAME}
+    INCLUDE_DIRS include/public
     LIBRARIES ${PROJECT_NAME}
     CATKIN_DEPENDS
         iop_events_fkie
@@ -48,7 +48,7 @@ iop_code_generator(
 )
 
 include_directories(${catkin_INCLUDE_DIRS}
-                    include/${PROJECT_NAME}
+                    include/public
 )
 add_library(${PROJECT_NAME}
             src/DiscoveryConfig.cpp
@@ -69,7 +69,7 @@ install(
 )
 
 install(
-  DIRECTORY include/${PROJECT_NAME} DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+  DIRECTORY include/public/${PROJECT_NAME} DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   PATTERN "*.old" EXCLUDE
   PATTERN "*.gen" EXCLUDE
 )

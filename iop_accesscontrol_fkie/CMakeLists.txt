@@ -45,9 +45,8 @@ iop_code_generator(
   GENERATED_SOURCES cppfiles
 )
 
-include_directories(${catkin_INCLUDE_DIRS}
-                    include/${PROJECT_NAME}
-)
+include_directories(${catkin_INCLUDE_DIRS})
+
 add_library(${PROJECT_NAME}
             src/AccessControlClientPlugin.cpp
             src/AccessControlPlugin.cpp
@@ -57,12 +56,6 @@ add_library(${PROJECT_NAME}
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
                       ${catkin_LIBRARIES}
-)
-
-install(
-  DIRECTORY include/${PROJECT_NAME} DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
-  PATTERN "*.old" EXCLUDE
-  PATTERN "*.gen" EXCLUDE
 )
 
 install(
