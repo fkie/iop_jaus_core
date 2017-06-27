@@ -51,8 +51,8 @@ include_directories(${catkin_INCLUDE_DIRS}
                     include/public
 )
 add_library(${PROJECT_NAME}
-            src/DiscoveryConfig.cpp
             src/DiscoveryClientPlugin.cpp
+            src/DiscoveryConfig.cpp
             src/DiscoveryPlugin.cpp
             ${cppfiles})
 
