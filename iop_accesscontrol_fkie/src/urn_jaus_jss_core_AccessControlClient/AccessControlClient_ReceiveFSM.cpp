@@ -84,37 +84,37 @@ void AccessControlClient_ReceiveFSM::handleConfirmControlAction(ConfirmControl m
 	uint8_t component_id = transportData.getSourceID()->getComponentID();
 	JausAddress sender(subsystem_id, node_id, component_id);
 	jUnsignedByte rcode = msg.getBody()->getConfirmControlRec()->getResponseCode();
-        if (rcode == 0) {
-                ROS_DEBUG_NAMED("AccessControlClient", "CONTROL_ACCEPTED: %d.%d.%d", subsystem_id, node_id, component_id);
-                if (!hasAccess(sender)) {
-                        mutex.lock();
-                        p_controlled_clients[sender.get()] = ros::WallTime::now().toSec();
-                        if (p_timeouts.find(sender.get()) == p_timeouts.end()) {
-                                p_timeouts[sender.get()] = 60;
-                        }
-                        mutex.unlock();
-                        QueryTimeout rt_msg;
-                        this->sendJausMessage(rt_msg, sender);
-                        p_timer.start();
-                }
-                pInformReplyCallbacks(sender, ACCESS_STATE_CONTROL_ACCEPTED);
-        } else if (rcode == 1) {
-                ROS_WARN_NAMED("AccessControlClient", "NOT_AVAILABLE: %d.%d.%d", subsystem_id, node_id, component_id);
-                pInformReplyCallbacks(sender, ACCESS_STATE_NOT_AVAILABLE);
-        } else if (rcode == 2) {
-                ROS_WARN_NAMED("AccessControlClient", "INSUFFICIENT_AUTHORITY: %d.%d.%d", subsystem_id, node_id, component_id);
-                QueryAuthority q_msg;
-                this->sendJausMessage(q_msg, sender);
-                pInformReplyCallbacks(sender, ACCESS_STATE_INSUFFICIENT_AUTHORITY);
-        }
-        mutex.lock();
-        for (unsigned int i=0; i < p_on_request_clients.size(); i++) {
-                if (p_on_request_clients[i].get() == sender.get()) {
-                        p_on_request_clients.erase(p_on_request_clients.begin()+i);
-                        break;
-                }
-        }
-        mutex.unlock();
+	if (rcode == 0) {
+		ROS_DEBUG_NAMED("AccessControlClient", "CONTROL_ACCEPTED: %d.%d.%d", subsystem_id, node_id, component_id);
+		if (!hasAccess(sender)) {
+			mutex.lock();
+			p_controlled_clients[sender.get()] = ros::WallTime::now().toSec();
+			if (p_timeouts.find(sender.get()) == p_timeouts.end()) {
+					p_timeouts[sender.get()] = 60;
+			}
+			mutex.unlock();
+			QueryTimeout rt_msg;
+			this->sendJausMessage(rt_msg, sender);
+			p_timer.start();
+		}
+		pInformReplyCallbacks(sender, ACCESS_STATE_CONTROL_ACCEPTED);
+	} else if (rcode == 1) {
+		ROS_WARN_NAMED("AccessControlClient", "NOT_AVAILABLE: %d.%d.%d", subsystem_id, node_id, component_id);
+		pInformReplyCallbacks(sender, ACCESS_STATE_NOT_AVAILABLE);
+	} else if (rcode == 2) {
+		ROS_WARN_NAMED("AccessControlClient", "INSUFFICIENT_AUTHORITY: %d.%d.%d", subsystem_id, node_id, component_id);
+		QueryAuthority q_msg;
+		this->sendJausMessage(q_msg, sender);
+		pInformReplyCallbacks(sender, ACCESS_STATE_INSUFFICIENT_AUTHORITY);
+	}
+	mutex.lock();
+	for (unsigned int i=0; i < p_on_request_clients.size(); i++) {
+		if (p_on_request_clients[i].get() == sender.get()) {
+			p_on_request_clients.erase(p_on_request_clients.begin()+i);
+			break;
+		}
+	}
+	mutex.unlock();
 }
 
 void AccessControlClient_ReceiveFSM::handleRejectControlAction(RejectControl msg, Receive::Body::ReceiveRec transportData)
@@ -124,21 +124,13 @@ void AccessControlClient_ReceiveFSM::handleRejectControlAction(RejectControl msg
 	uint8_t node_id = transportData.getSourceID()->getNodeID();
 	uint8_t component_id = transportData.getSourceID()->getComponentID();
 	JausAddress sender(subsystem_id, node_id, component_id);
-	ROS_DEBUG_NAMED("AccessControlClient", "Control Rejected %d.%d.%d, code: %c", subsystem_id, node_id, component_id, msg.getBody()->getRejectControlRec()->getResponseCode());
-        mutex.lock();
-        std::map <unsigned int, double>::iterator it = p_controlled_clients.find(sender.get());
-        if (it != p_controlled_clients.end()) {
-                p_controlled_clients.erase(it);
-        }
-        if (p_controlled_clients.size() == 0) {
-                p_timer.stop();
-        }
-        mutex.unlock();
-        if (msg.getBody()->getRejectControlRec()->getResponseCode() == 0) {
-                pInformReplyCallbacks(sender, ACCESS_STATE_CONTROL_RELEASED);
-        } else if (msg.getBody()->getRejectControlRec()->getResponseCode() == 1) {
-                pInformReplyCallbacks(sender, ACCESS_STATE_NOT_AVAILABLE);
-        }
+	ROS_DEBUG_NAMED("AccessControlClient", "Control Rejected %d.%d.%d, code: %d", subsystem_id, node_id, component_id, (int)msg.getBody()->getRejectControlRec()->getResponseCode());
+	pRemoveClient(sender.get());
+	if (msg.getBody()->getRejectControlRec()->getResponseCode() == 0) {
+		pInformReplyCallbacks(sender, ACCESS_STATE_CONTROL_RELEASED);
+	} else if (msg.getBody()->getRejectControlRec()->getResponseCode() == 1) {
+		pInformReplyCallbacks(sender, ACCESS_STATE_NOT_AVAILABLE);
+	}
 }
 
 void AccessControlClient_ReceiveFSM::handleReportAuthorityAction(ReportAuthority msg, Receive::Body::ReceiveRec transportData)
@@ -196,6 +188,8 @@ void AccessControlClient_ReceiveFSM::resetControlTimerAction()
 				// send request
 				JausAddress address = p_addresses[tit->first];
 				p_controlled_clients[tit->first] = now;
+				ROS_INFO_NAMED("AccessControlClient", "Send request access to %d.%d.%d, authority: %d", address.getSubsystemID(),
+						address.getNodeID(), address.getComponentID(), p_auths[tit->first]);
 				ROS_DEBUG_NAMED("AccessControlClient", "Send request access to %d.%d.%d, authority: %d", address.getSubsystemID(),
 						address.getNodeID(), address.getComponentID(), p_auths[tit->first]);
 				RequestControl msg;
@@ -252,6 +246,7 @@ void AccessControlClient_ReceiveFSM::pReleaseAccess(JausAddress address)
 {
 	ROS_DEBUG_NAMED("AccessControlClient", "Send release access to %d.%d.%d", address.getSubsystemID(),
 			address.getNodeID(), address.getComponentID());
+	pRemoveClient(address.get());
 	ReleaseControl msg;
 	this->sendJausMessage(msg, address);
 }
@@ -289,18 +284,41 @@ void AccessControlClient_ReceiveFSM::pTimeoutCallback(const ros::WallTimerEvent&
 
 void AccessControlClient_ReceiveFSM::pInformReplyCallbacks(JausAddress &address, unsigned char code)
 {
-        std::map <unsigned int, std::vector<boost::function<void (JausAddress &, unsigned char code)> > >::iterator it;
-        it = p_reply_callbacks.find(address.get());
-        if (it != p_reply_callbacks.end()) {
-                for (unsigned int i = 0; i < it->second.size(); i++) {
-                        it->second[i](address, code);
-                }
-                it->second.clear();
-                p_reply_callbacks.erase(it);
-        }
-        if (!p_class_access_reply_callback.empty()) {
-                p_class_access_reply_callback(address, code);
-        }
+	std::map <unsigned int, std::vector<boost::function<void (JausAddress &, unsigned char code)> > >::iterator it;
+	it = p_reply_callbacks.find(address.get());
+	if (it != p_reply_callbacks.end()) {
+		for (unsigned int i = 0; i < it->second.size(); i++) {
+			it->second[i](address, code);
+		}
+		it->second.clear();
+		p_reply_callbacks.erase(it);
+	}
+	if (!p_class_access_reply_callback.empty()) {
+			p_class_access_reply_callback(address, code);
+	}
+	std::vector<boost::function<void (JausAddress &, unsigned char code)> >::iterator it_all;
+	for (it_all = p_reply_handler.begin(); it_all != p_reply_handler.end(); ++it_all) {
+		(*it_all)(address, code);
+	}
+}
+
+void AccessControlClient_ReceiveFSM::pRemoveClient(unsigned int address)
+{
+	mutex.lock();
+	std::map <unsigned int, double>::iterator it = p_controlled_clients.find(address);
+	if (it != p_controlled_clients.end()) {
+		p_controlled_clients.erase(it);
+	}
+	if (p_controlled_clients.size() == 0) {
+		p_timer.stop();
+	}
+	for (unsigned int i=0; i < p_on_request_clients.size(); i++) {
+		if (p_on_request_clients[i].get() == address) {
+			p_on_request_clients.erase(p_on_request_clients.begin()+i);
+			break;
+		}
+	}
+	mutex.unlock();
 }
 
 

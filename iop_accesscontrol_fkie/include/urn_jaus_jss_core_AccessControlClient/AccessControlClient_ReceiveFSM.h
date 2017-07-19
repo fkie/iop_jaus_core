@@ -31,8 +31,8 @@ along with this program; or you can read the full license at
 #include "urn_jaus_jss_core_AccessControlClient/Messages/MessageSet.h"
 #include "urn_jaus_jss_core_AccessControlClient/InternalEvents/InternalEventsSet.h"
 
-typedef JTS::Receive Receive;
-typedef JTS::Send Send;
+#include "InternalEvents/Receive.h"
+#include "InternalEvents/Send.h"
 
 #include "urn_jaus_jss_core_Transport/Transport_ReceiveFSM.h"
 #include "urn_jaus_jss_core_EventsClient/EventsClient_ReceiveFSM.h"
@@ -80,7 +80,10 @@ public:
 		p_reply_callbacks[address.get()].push_back(callback);
 		pRequestAccess(address, authority);
 	}
-
+	void requestAccess(JausAddress address, jUnsignedByte authority=255)
+	{
+		pRequestAccess(address, authority);
+	}
 	template<class T>
 	void releaseAccess(JausAddress address, void(T::*reply_handler)(JausAddress &, unsigned char code), T*obj)
 	{
@@ -93,10 +96,10 @@ public:
 		pReleaseAccess(address);
 	}
 	bool hasAccess(JausAddress address);
-//	template<class T>
-//	void set_access_reply_handler(void(T::*handler)(JausAddress &, unsigned char code), T*obj) {
-//		p_class_access_reply_callback = boost::bind(handler, obj, _1, _2);
-//	}
+	template<class T>
+	void add_reply_handler(void(T::*handler)(JausAddress &, unsigned char code), T*obj) {
+		p_reply_handler.push_back(boost::bind(handler, obj, _1, _2));
+	}
 
 	AccessControlClient_ReceiveFSMContext *context;
 
@@ -106,6 +109,7 @@ protected:
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
 	urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM;
 
+	std::vector<boost::function<void (JausAddress &, unsigned char code)> > p_reply_handler;
 	std::map <unsigned int, std::vector<boost::function<void (JausAddress &, unsigned char code)> > > p_reply_callbacks;  // unsigned int -> JausAddress::get(), list with callbacks to this address
 	boost::function<void (JausAddress &, unsigned char code)> p_class_access_reply_callback;
 	jUnsignedByte p_default_timeout;
@@ -122,6 +126,7 @@ protected:
 	void pInformReplyCallbacks(JausAddress &address, unsigned char code);
 	void pRequestAccess(JausAddress address, jUnsignedByte authority=255);
 	void pReleaseAccess(JausAddress address);
+	void pRemoveClient(unsigned int address);
 };
 
 };

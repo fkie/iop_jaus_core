@@ -51,7 +51,6 @@ Events_ReceiveFSM::Events_ReceiveFSM(urn_jaus_jss_core_Transport::Transport_Rece
 	 * statemachine needs them.
 	 */
 	context = new Events_ReceiveFSMContext(*this);
-	std::cout << "CREATE EVENTS 1.1" << std::endl;
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	p_timer = NULL;
 	p_event_occurred_event = new InternalEvent("EventOccurred", "ControlEventOccurred");
@@ -184,7 +183,6 @@ void Events_ReceiveFSM::createAndConfirmEventRequestAction(CreateEvent msg, Rece
 	//	jUnsignedShortInteger reportid = p_registered_events[event.query_msg_id][0];
 	//	event.event.getBody()->getEventRec()->getReportMessage()->set(len, (const unsigned char *)&reportid);
 	event.event.getBody()->getEventRec()->setSequenceNumber(0);
-	std::cout << "!!!!ADD EVEND" << (int)event.eventid << std::endl;
 	p_current_events[event.eventid] = event;
 	// start the timer
 	append2timeout(event.eventid);
@@ -557,10 +555,8 @@ jUnsignedByte Events_ReceiveFSM::pGetFreeEventID()
 	jUnsignedByte result = 0;
 	while (result < 255) {
 		if (p_current_events.find(result) != p_current_events.end()) {
-			std::cout << "!!!!nn ++" << (int)result << std::endl;
 			result++;
 		} else {
-			std::cout << "!!!!break" << (int)result << std::endl;
 			break;
 		}
 	}
