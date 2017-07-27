@@ -309,6 +309,10 @@ void AccessControlClient_ReceiveFSM::pRemoveClient(unsigned int address)
 	if (it != p_controlled_clients.end()) {
 		p_controlled_clients.erase(it);
 	}
+	std::map <unsigned int, int>::iterator itt = p_timeouts.find(address);
+	if (itt != p_timeouts.end()) {
+		p_timeouts.erase(itt);
+	}
 	if (p_controlled_clients.size() == 0) {
 		p_timer.stop();
 	}
