@@ -302,7 +302,7 @@ void Events_ReceiveFSM::sendRejectEventRequestAction(CreateEvent msg, Receive::B
 		rmsg = "invalid event setup";
 	} else if (msg_event->getEventType() == 1) {
 		rcode = 2;
-		rmsg = "change based events not supported";
+		rmsg = "change based event not supported";
 	}
 
 	rvent_rec->setResponseCode(rcode);
@@ -507,13 +507,13 @@ bool Events_ReceiveFSM::isSupported(CreateEvent msg)
 	if (event->getEventType() == 1) {
 		supported = (p_registered_events_onchange_.find(messageid) != p_registered_events_onchange_.end());
 		if (!supported) {
-			ROS_WARN_NAMED("Events", "change based events not supported, requestid: %d",
-					msg.getBody()->getCreateEventRec()->getRequestID() );
+			ROS_WARN_NAMED("Events", "change based event %#x not supported, requestid: %d",
+					pMessageIDFromData(event->getQueryMessage()->getData()), msg.getBody()->getCreateEventRec()->getRequestID() );
 		}
 	} else if (event->getRequestedPeriodicRate() < MINIMUM_RATE || event->getRequestedPeriodicRate() > MAXIMUM_RATE) {
 		supported = false;
-		ROS_WARN_NAMED("Events", "periodic rate %f is not supported, requestid: %d",
-				event->getRequestedPeriodicRate(), event->getRequestID() );
+		ROS_WARN_NAMED("Events", "periodic rate %f for %#x is not supported, requestid: %d",
+				event->getRequestedPeriodicRate(), pMessageIDFromData(event->getQueryMessage()->getData()), event->getRequestID() );
 	}
 	return supported;
 }
@@ -528,13 +528,13 @@ bool Events_ReceiveFSM::isSupported(UpdateEvent msg)
 	if (event->getEventType() == 1) {
 		supported = (p_registered_events_onchange_.find(messageid) != p_registered_events_onchange_.end());
 		if (!supported) {
-			ROS_WARN_NAMED("Events", "change based events not supported, update requestid: %d",
-					msg.getBody()->getUpdateEventRec()->getRequestID() );
+			ROS_WARN_NAMED("Events", "change based event %#x not supported, update requestid: %d",
+					pMessageIDFromData(event->getQueryMessage()->getData()), msg.getBody()->getUpdateEventRec()->getRequestID() );
 		}
 	} else if (event->getRequestedPeriodicRate() < MINIMUM_RATE || event->getRequestedPeriodicRate() > MAXIMUM_RATE) {
 		supported = false;
-		ROS_WARN_NAMED("Events", "periodic rate %f is not supported, update requestid: %d",
-				event->getRequestedPeriodicRate(), event->getRequestID() );
+		ROS_WARN_NAMED("Events", "periodic rate %f for %#x is not supported, update requestid: %d",
+				event->getRequestedPeriodicRate(), pMessageIDFromData(event->getQueryMessage()->getData()), event->getRequestID() );
 	}
 	return supported;
 }
