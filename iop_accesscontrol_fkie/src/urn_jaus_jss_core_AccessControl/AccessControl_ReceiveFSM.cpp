@@ -23,7 +23,7 @@ along with this program; or you can read the full license at
 
 #include "urn_jaus_jss_core_AccessControl/AccessControl_ReceiveFSM.h"
 #include <ros/console.h>
-
+#include <std_msgs/Bool.h>
 
 
 using namespace JTS;
@@ -55,6 +55,7 @@ AccessControl_ReceiveFSM::AccessControl_ReceiveFSM(urn_jaus_jss_core_Transport::
 	p_timeout_event = new InternalEvent("Timedout", "ControlTimeout");
 	context = new AccessControl_ReceiveFSMContext(*this);
 	p_timer = new DeVivo::Junior::JrTimer(Timeout, this, p_default_timeout*1000);
+	p_pnh = ros::NodeHandle("~");
 
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEvents_ReceiveFSM = pEvents_ReceiveFSM;
@@ -79,6 +80,8 @@ void AccessControl_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving_Ready", "AccessControl_ReceiveFSM");
 	registerNotification("Receiving", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving", "AccessControl_ReceiveFSM");
 
+	p_is_controlled_publisher = p_pnh.advertise<std_msgs::Bool>("is_controlled", 5, true);
+	pPublishControlState(false);
 }
 
 void AccessControl_ReceiveFSM::timeout(void* arg)
@@ -146,6 +149,7 @@ void AccessControl_ReceiveFSM::sendRejectControlAction(ReleaseControl msg, std::
 			p_current_controller = NULL;
 			p_current_authority = p_default_authority;
 			p_timer->stop();
+			pPublishControlState(false);
 		}
 	} else if (arg0 == "NOT_AVAILABLE") {
 		reject_msg.getBody()->getRejectControlRec()->setResponseCode(1);
@@ -174,6 +178,7 @@ void AccessControl_ReceiveFSM::sendRejectControlToControllerAction(std::string a
 				p_current_controller = NULL;
 				p_current_authority = p_default_authority;
 				p_timer->stop();
+				pPublishControlState(false);
 			}
 			reject_msg.getBody()->getRejectControlRec()->setResponseCode(0);
 		} else if (arg0 == "NOT_AVAILABLE") {
@@ -268,8 +273,10 @@ void AccessControl_ReceiveFSM::storeAddressAction(Receive::Body::ReceiveRec tran
 			subsystem_id, node_id, component_id);
 	if (p_current_controller != NULL) {
 		delete p_current_controller;
+		p_current_controller = NULL;
 	}
 	p_current_controller = new JausAddress(subsystem_id, node_id, component_id);
+	pPublishControlState(true);
 }
 
 
@@ -278,8 +285,9 @@ bool AccessControl_ReceiveFSM::isAuthorityValid(SetAuthority msg)
 {
 	/// Insert User Code HERE
 	if ((msg.getBody()->getAuthorityRec()->getAuthorityCode() <= p_current_authority)
-		&& msg.getBody()->getAuthorityRec()->getAuthorityCode() >= p_default_authority)
-	return true;
+		&& msg.getBody()->getAuthorityRec()->getAuthorityCode() >= p_default_authority) {
+		return true;
+	}
 	return false;
 }
 bool AccessControl_ReceiveFSM::isControlAvailable()
@@ -313,5 +321,11 @@ bool AccessControl_ReceiveFSM::isDefaultAuthorityGreater(RequestControl msg)
 	return false;
 }
 
+void AccessControl_ReceiveFSM::pPublishControlState(bool state)
+{
+	std_msgs::Bool ros_msg;
+	ros_msg.data = state;
+	p_is_controlled_publisher.publish(ros_msg);
+}
 
 };
