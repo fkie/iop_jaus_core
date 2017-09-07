@@ -104,6 +104,9 @@ protected:
 
 	JTS::InternalEvent *p_timeout_event;
 
+	ros::NodeHandle p_nh;
+	
+	ros::Publisher p_is_controlled_publisher;
 };
 
 };

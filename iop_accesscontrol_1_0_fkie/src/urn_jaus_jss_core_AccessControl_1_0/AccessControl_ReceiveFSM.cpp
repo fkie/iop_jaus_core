@@ -35,7 +35,7 @@
 #include "urn_jaus_jss_core_AccessControl_1_0/AccessControl_ReceiveFSM.h"
 #include <ros/console.h>
 
-
+#include <std_msgs/Bool.h>
 
 using namespace JTS;
 
@@ -69,6 +69,7 @@ AccessControl_ReceiveFSM::AccessControl_ReceiveFSM(urn_jaus_jss_core_Transport_1
 
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEvents_ReceiveFSM = pEvents_ReceiveFSM;
+	
 }
 
 
@@ -90,6 +91,11 @@ void AccessControl_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving_Ready", "AccessControl_ReceiveFSM");
 	registerNotification("Receiving", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving", "AccessControl_ReceiveFSM");
 
+	p_is_controlled_publisher = p_nh.advertise<std_msgs::Bool>("is_controlled",5,true);
+	
+	std_msgs::Bool ros_msg;
+	ros_msg.data = false;
+	p_is_controlled_publisher.publish(ros_msg);
 }
 
 void AccessControl_ReceiveFSM::timeout(void* arg)
@@ -126,6 +132,10 @@ void AccessControl_ReceiveFSM::sendConfirmControlAction(RequestControl msg, std:
 	if (arg0 == "CONTROL_ACCEPTED") {
 		responseCode = 0;
 		p_timer->start();
+		
+		std_msgs::Bool ros_msg;
+		ros_msg.data = true;
+		p_is_controlled_publisher.publish(ros_msg);
 	} else if (arg0 == "NOT_AVAILABLE") {
 		responseCode = 1;
 	} else if (arg0 == "INSUFFICIENT_AUTHORITY") {
@@ -157,6 +167,9 @@ void AccessControl_ReceiveFSM::sendRejectControlAction(ReleaseControl msg, std::
 			p_current_authority = p_default_authority;
 			p_timer->stop();
 		}
+		std_msgs::Bool ros_msg;
+		ros_msg.data = false;
+		p_is_controlled_publisher.publish(ros_msg);
 	} else if (arg0 == "NOT_AVAILABLE") {
 		reject_msg.getBody()->getRejectControlRec()->setResponseCode(1);
 	} else {
@@ -185,6 +198,9 @@ void AccessControl_ReceiveFSM::sendRejectControlToControllerAction(std::string a
 				p_current_authority = p_default_authority;
 				p_timer->stop();
 			}
+			std_msgs::Bool ros_msg;
+			ros_msg.data = false;
+			p_is_controlled_publisher.publish(ros_msg);
 			reject_msg.getBody()->getRejectControlRec()->setResponseCode(0);
 		} else if (arg0 == "NOT_AVAILABLE") {
 			reject_msg.getBody()->getRejectControlRec()->setResponseCode(1);
@@ -225,6 +241,15 @@ void AccessControl_ReceiveFSM::sendReportControlAction(QueryControl msg, Receive
 		sid = p_current_controller->getSubsystemID();
 		nid = p_current_controller->getNodeID();
 		cid = p_current_controller->getComponentID();
+		
+		std_msgs::Bool ros_msg;
+		ros_msg.data = true;
+		p_is_controlled_publisher.publish(ros_msg);
+	} else
+	{
+		std_msgs::Bool ros_msg;
+		ros_msg.data = false;
+		p_is_controlled_publisher.publish(ros_msg);	
 	}
 	response.getBody()->getReportControlRec()->setSubsystemID(sid);
 	response.getBody()->getReportControlRec()->setNodeID(nid);
