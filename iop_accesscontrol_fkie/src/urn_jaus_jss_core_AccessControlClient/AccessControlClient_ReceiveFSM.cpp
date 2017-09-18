@@ -90,7 +90,7 @@ void AccessControlClient_ReceiveFSM::handleConfirmControlAction(ConfirmControl m
 			mutex.lock();
 			p_controlled_clients[sender.get()] = ros::WallTime::now().toSec();
 			if (p_timeouts.find(sender.get()) == p_timeouts.end()) {
-					p_timeouts[sender.get()] = 60;
+					p_timeouts[sender.get()] = 10;
 			}
 			mutex.unlock();
 			QueryTimeout rt_msg;

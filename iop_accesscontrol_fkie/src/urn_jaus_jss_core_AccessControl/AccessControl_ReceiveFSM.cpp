@@ -50,7 +50,7 @@ AccessControl_ReceiveFSM::AccessControl_ReceiveFSM(urn_jaus_jss_core_Transport::
 	p_current_controller = NULL;
 	p_current_authority = 0;
 	p_default_authority = 1;
-	p_default_timeout = 60;
+	p_default_timeout = 10;
 	p_control_available = true;
 	p_timeout_event = new InternalEvent("Timedout", "ControlTimeout");
 	context = new AccessControl_ReceiveFSMContext(*this);
@@ -81,6 +81,7 @@ void AccessControl_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving", "AccessControl_ReceiveFSM");
 
 	p_is_controlled_publisher = p_pnh.advertise<std_msgs::Bool>("is_controlled", 5, true);
+	p_default_timeout = p_pnh.param("access_timeout", p_default_timeout, p_default_timeout);
 	pPublishControlState(false);
 }
 
