@@ -84,7 +84,7 @@ protected:
 	JausAddress *p_current_controller;
 	jUnsignedByte p_current_authority;
 	jUnsignedByte p_default_authority;
-	jUnsignedByte p_default_timeout;
+	int p_default_timeout;
 	bool p_control_available;
 	ros::NodeHandle p_pnh;
 	ros::Publisher p_is_controlled_publisher;
