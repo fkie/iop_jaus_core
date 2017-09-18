@@ -321,12 +321,26 @@ void DiscoveryClient_ReceiveFSM::handleReportIdentificationAction(ReportIdentifi
 		JausAddress addr(transportData.getSourceID()->getSubsystemID(), transportData.getSourceID()->getNodeID(), transportData.getSourceID()->getComponentID());
 		req_cfg_msg.getBody()->getQueryConfigurationRec()->setQueryType(ros_msg.request_type);
 		this->sendJausMessage(req_cfg_msg, addr);
-		if (!p_recved_service_lists and p_count_queries > 2) {
-			ROS_DEBUG_NAMED("DiscoveryClient", "send request for QueryServices for compatibility to v1.0");
-			QueryServices req_srv_msg;
-			this->sendJausMessage(req_srv_msg, addr);
-		}
+//		if (!p_recved_service_lists and p_count_queries > 2) {
+//			ROS_DEBUG_NAMED("DiscoveryClient", "send request for QueryServices for compatibility to v1.0");
+//			QueryServices req_srv_msg;
+//			this->sendJausMessage(req_srv_msg, addr);
+//		}
 		QueryServiceList req_srvl_msg;
+		QueryServiceList::Body::SubsystemList *sslist = req_srvl_msg.getBody()->getSubsystemList();
+		QueryServiceList::Body::SubsystemList::SubsystemSeq ssr;
+		ssr.getSubsystemRec()->setSubsystemID(65535);
+		sslist->addElement(ssr);
+		QueryServiceList::Body::SubsystemList::SubsystemSeq *ssrec = sslist->getElement(sslist->getNumberOfElements()-1);
+		QueryServiceList::Body::SubsystemList::SubsystemSeq::NodeList *nlist = ssrec->getNodeList();
+		QueryServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq nr;
+		nr.getNodeRec()->setNodeID(255);
+		nlist->addElement(nr);
+		QueryServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq *nrseq = nlist->getElement(nlist->getNumberOfElements()-1);
+		QueryServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq::ComponentList *clist = nrseq->getComponentList();
+		QueryServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq::ComponentList::ComponentRec cr;
+		cr.setComponentID(255);
+		clist->addElement(cr);
 		this->sendJausMessage(req_srvl_msg, addr);
 		p_count_queries += 1;
 
@@ -548,7 +562,7 @@ void DiscoveryClient_ReceiveFSM::handleReportServicesAction(ReportServices msg, 
 				if (addr.get() != 0) {
 					// the service was found, forward the address to the callback
 					ServiceDef service = p_discover_services[i].service;
-					ROS_DEBUG_NAMED("DiscoveryClient", "service '%s' discovered @%d.%d.%d through services old stile", service.service_uri.c_str(), addr.getSubsystemID(), addr.getNodeID(), addr.getComponentID());
+					ROS_DEBUG_NAMED("DiscoveryClient", "service '%s' discovered @%d.%d.%d through services old stile, using QueryServices", service.service_uri.c_str(), addr.getSubsystemID(), addr.getNodeID(), addr.getComponentID());
 					p_discover_services[i].discovered = true;
 					pInformDiscoverCallbacks(service, addr);
 				}
