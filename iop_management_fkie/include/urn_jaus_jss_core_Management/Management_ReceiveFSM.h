@@ -40,6 +40,7 @@ along with this program; or you can read the full license at
 
 
 #include "Management_ReceiveFSM_sm.h"
+#include <ros/ros.h>
 
 namespace urn_jaus_jss_core_Management
 {
@@ -101,8 +102,11 @@ protected:
 	urn_jaus_jss_core_Events::Events_ReceiveFSM* pEvents_ReceiveFSM;
 	urn_jaus_jss_core_AccessControl::AccessControl_ReceiveFSM* pAccessControl_ReceiveFSM;
 
-        std::vector<JausAddress> p_emergency_clients;
-        int getStateID();
+	std::vector<JausAddress> p_emergency_clients;
+	ros::NodeHandle p_pnh;
+	ros::Publisher p_pub_emergency;
+	ros::Publisher p_pub_ready;
+	int getStateID();
 };
 
 };

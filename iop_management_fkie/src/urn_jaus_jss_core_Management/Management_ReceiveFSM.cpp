@@ -24,6 +24,7 @@ along with this program; or you can read the full license at
 #include "urn_jaus_jss_core_Management/Management_ReceiveFSM.h"
 
 #include <ros/console.h>
+#include <std_msgs/Bool.h>
 
 
 using namespace JTS;
@@ -46,6 +47,7 @@ Management_ReceiveFSM::Management_ReceiveFSM(urn_jaus_jss_core_Transport::Transp
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEvents_ReceiveFSM = pEvents_ReceiveFSM;
 	this->pAccessControl_ReceiveFSM = pAccessControl_ReceiveFSM;
+	p_pnh = ros::NodeHandle("~");
 }
 
 
@@ -74,6 +76,9 @@ void Management_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready_Controlled", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready_Controlled", "Management_ReceiveFSM");
 	registerNotification("Receiving_Ready", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready", "Management_ReceiveFSM");
 	registerNotification("Receiving", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving", "Management_ReceiveFSM");
+
+	p_pub_emergency = p_pnh.advertise<std_msgs::Bool>("is_emergency", 5, true);
+	p_pub_ready = p_pnh.advertise<std_msgs::Bool>("is_ready", 5, true);
 }
 
 void Management_ReceiveFSM::deleteIDAction(Receive::Body::ReceiveRec transportData)
@@ -92,6 +97,9 @@ void Management_ReceiveFSM::deleteIDAction(Receive::Body::ReceiveRec transportDa
 void Management_ReceiveFSM::emergencyAction()
 {
 	ROS_DEBUG_NAMED("Management", "emergencyAction");
+	std_msgs::Bool rosmsg;
+	rosmsg.data = true;
+	p_pub_emergency.publish(rosmsg);
 }
 
 void Management_ReceiveFSM::goReadyAction()
@@ -117,21 +125,33 @@ void Management_ReceiveFSM::initializeAction()
 void Management_ReceiveFSM::readyAction()
 {
 	ROS_DEBUG_NAMED("Management", "readyAction");
+	std_msgs::Bool rosmsg;
+	rosmsg.data = true;
+	p_pub_ready.publish(rosmsg);
 }
 
 void Management_ReceiveFSM::resetEmergency2Action()
 {
 	ROS_DEBUG_NAMED("Management", "resetEmergency2Action");
+	std_msgs::Bool rosmsg;
+	rosmsg.data = false;
+	p_pub_emergency.publish(rosmsg);
 }
 
 void Management_ReceiveFSM::resetEmergencyAction()
 {
 	ROS_DEBUG_NAMED("Management", "resetEmergencyAction");
+	std_msgs::Bool rosmsg;
+	rosmsg.data = false;
+	p_pub_emergency.publish(rosmsg);
 }
 
 void Management_ReceiveFSM::resetReadyAction()
 {
 	ROS_DEBUG_NAMED("Management", "resetReadyAction");
+	std_msgs::Bool rosmsg;
+	rosmsg.data = false;
+	p_pub_ready.publish(rosmsg);
 }
 //void Management_ReceiveFSM::resetTimerAction()
 //{
