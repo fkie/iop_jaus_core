@@ -148,7 +148,15 @@ protected:
 	public:
 		ServiceDef service;
 		int subsystem;
-		bool discovered;
+//		bool discovered;
+		std::set<unsigned short> discovered_in;
+
+		bool discovered(unsigned short subsystem_id=65535) {
+			if (subsystem_id == 65535) {
+				return discovered_in.size() > 0;
+			}
+			return discovered_in.count(subsystem_id) > 0;
+		}
 	};
 
     /// References to parent FSMs
@@ -159,6 +167,7 @@ protected:
 	ros::NodeHandle p_pnh;
 	Discovery_ReceiveFSM *p_discovery_fsm;
 	int p_current_timeout;
+	int p_force_component_update_after;
 	bool p_first_ready;
 	bool p_is_registered;
 	bool p_on_registration;
@@ -189,7 +198,7 @@ protected:
 	void pUpdateComponent(iop_msgs_fkie::JausAddress &node_addr, iop_msgs_fkie::JausAddress &addr, ReportServices::Body::NodeList::NodeSeq::ComponentList::ComponentSeq::ServiceList *service_list);
 	void pUpdateComponent(iop_msgs_fkie::JausAddress &node_addr, iop_msgs_fkie::JausAddress &addr, ReportServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq::ComponentList::ComponentSeq::ServiceList *service_list);
 	void pTimeoutCallback(const ros::WallTimerEvent& event);
-	bool pHasToDiscover();
+	bool pHasToDiscover(unsigned short subsystem_id);
 	void pInformDiscoverCallbacks(ServiceDef &service, JausAddress &address);
 
 	/** Parameter and functions for ROS interface to publish the IOP system.*/
@@ -198,6 +207,7 @@ protected:
 	ros::Publisher p_pub_system;
 	ros::ServiceServer p_srv_query_ident;
 	ros::ServiceServer p_srv_update_system;
+	std::map<unsigned int, ros::Time> p_service_list_stamps;
 
 	bool pQueryIdentificationSrv(iop_msgs_fkie::QueryIdentification::Request  &req, iop_msgs_fkie::QueryIdentification::Response &res);
 	bool pUpdateSystemSrv(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res);

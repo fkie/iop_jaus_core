@@ -51,7 +51,7 @@ AccessControlClient_ReceiveFSM::AccessControlClient_ReceiveFSM(urn_jaus_jss_core
 
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEventsClient_ReceiveFSM = pEventsClient_ReceiveFSM;
-	p_default_timeout = 15;
+	p_default_timeout = 1;
 	p_timeout_event = new InternalEvent("Timeout", "ControlTimeout");
 	ros::NodeHandle nh;
 	p_timer = nh.createWallTimer(ros::WallDuration(p_default_timeout), &AccessControlClient_ReceiveFSM::pTimeoutCallback, this, false, false);
@@ -184,12 +184,10 @@ void AccessControlClient_ReceiveFSM::resetControlTimerAction()
 		for (tit = p_timeouts.begin(); tit != p_timeouts.end(); ++tit) {
 			double last_confirm = p_controlled_clients[tit->first];
 			double now = ros::WallTime::now().toSec();
-			if (last_confirm+(float)tit->second < now+(float)p_default_timeout) {
+			if (last_confirm + (float)tit->second < now + (float)p_default_timeout + 1.0) {
 				// send request
 				JausAddress address = p_addresses[tit->first];
 				p_controlled_clients[tit->first] = now;
-				ROS_INFO_NAMED("AccessControlClient", "Send request access to %d.%d.%d, authority: %d", address.getSubsystemID(),
-						address.getNodeID(), address.getComponentID(), p_auths[tit->first]);
 				ROS_DEBUG_NAMED("AccessControlClient", "Send request access to %d.%d.%d, authority: %d", address.getSubsystemID(),
 						address.getNodeID(), address.getComponentID(), p_auths[tit->first]);
 				RequestControl msg;

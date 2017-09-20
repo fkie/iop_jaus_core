@@ -188,14 +188,15 @@ void Discovery_ReceiveFSM::sendReportIdentificationAction(QueryIdentification ms
 		} else if (query_type == discovery_config::TYPE_SYSTEM) {
 			name = "System";
 		}
-		ROS_DEBUG_NAMED("Discovery", "sendReportIdentification own identification: query_type: %d, system_type: %d, name: %s",
+		ROS_DEBUG_NAMED("Discovery", "sendReportIdentification to %d.%d.%d: query_type: %d, system_type: %d, name: %s",
+				transportData.getSourceID()->getSubsystemID(), transportData.getSourceID()->getNodeID(), transportData.getSourceID()->getComponentID(),
 				query_type, p_discovery_config.system_type, name.c_str());
 		report_msg.getBody()->getReportIdentificationRec()->setQueryType(query_type);
 		report_msg.getBody()->getReportIdentificationRec()->setType(p_discovery_config.system_type);
 		report_msg.getBody()->getReportIdentificationRec()->setIdentification(name);
 		sendJausMessage(report_msg, sender);
 	} else {
-//		printf("[Discovery] sendReportIdentification own system_id_type: %d>%d (query_type), do not response\n", p_discovery_config.system_id, query_type);
+		printf("[Discovery] sendReportIdentification own system_id_type: %d>%d (query_type), do not response\n", p_discovery_config.system_id, query_type);
 	}
 }
 
