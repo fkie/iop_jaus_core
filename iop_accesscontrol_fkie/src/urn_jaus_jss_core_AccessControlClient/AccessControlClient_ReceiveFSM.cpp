@@ -184,7 +184,8 @@ void AccessControlClient_ReceiveFSM::resetControlTimerAction()
 		for (tit = p_timeouts.begin(); tit != p_timeouts.end(); ++tit) {
 			double last_confirm = p_controlled_clients[tit->first];
 			double now = ros::WallTime::now().toSec();
-			if (last_confirm + (float)tit->second < now + (float)p_default_timeout + 1.0) {
+			if (last_confirm + (float)tit->second < now + (float)p_default_timeout + 1.0
+					and p_addresses.find(tit->first) != p_addresses.end()) {
 				// send request
 				JausAddress address = p_addresses[tit->first];
 				p_controlled_clients[tit->first] = now;
