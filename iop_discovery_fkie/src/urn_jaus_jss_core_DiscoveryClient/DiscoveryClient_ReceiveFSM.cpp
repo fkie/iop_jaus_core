@@ -79,10 +79,9 @@ void DiscoveryClient_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving", pEventsClient_ReceiveFSM->getHandler(), "InternalStateChange_To_EventsClient_ReceiveFSM_Receiving", "DiscoveryClient_ReceiveFSM");
 	p_discovery_config.update_ros_parameter();
 	p_timeout_timer = p_nh.createWallTimer(ros::WallDuration(p_current_timeout), &DiscoveryClient_ReceiveFSM::pTimeoutCallback, this, false, false);
+	p_timeout_timer.start();
 	if (!p_discovery_config.register_own_services) {
 		pRegistrationFinished();
-	} else {
-		p_timeout_timer.start();
 	}
 	p_pnh.param("force_component_update_after", p_force_component_update_after, p_force_component_update_after);
 	ROS_INFO_STREAM("[DiscoveryClientService] force_component_update_after: " << p_force_component_update_after);
