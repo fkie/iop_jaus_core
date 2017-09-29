@@ -243,7 +243,7 @@ void AccessControl_ReceiveFSM::sendReportTimeoutAction(QueryTimeout msg, Receive
 	uint8_t component_id = transportData.getSourceID()->getComponentID();
 	JausAddress sender(subsystem_id, node_id, component_id);
 	jUnsignedByte timeout = p_default_timeout;
-	ROS_DEBUG_NAMED("AccessControl", "Sending ReportTimeout to %d.%d.%d, timeout: %d",
+	ROS_DEBUG_NAMED("AccessControl", "send AccessTimeout to %d.%d.%d, timeout: %d",
 				subsystem_id, node_id, component_id, timeout);
 	ReportTimeout response;
 	response.getBody()->getReportTimoutRec()->setTimeout(timeout);

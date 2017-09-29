@@ -37,7 +37,6 @@ class DllExport DiscoveryClientPlugin : public PluginInterface
 {
 public:
 	DiscoveryClientPlugin();
-	~DiscoveryClientPlugin();
 
 	JTS::Service* get_service();
 	void create_service(JTS::JausRouter* jaus_router);

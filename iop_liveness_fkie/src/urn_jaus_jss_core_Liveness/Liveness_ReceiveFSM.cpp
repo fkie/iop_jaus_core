@@ -61,18 +61,16 @@ void Liveness_ReceiveFSM::setupNotifications()
 	pEvents_ReceiveFSM->registerNotification("Receiving", ieHandler, "InternalStateChange_To_Liveness_ReceiveFSM_Receiving_Ready", "Events_ReceiveFSM");
 	registerNotification("Receiving_Ready", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving_Ready", "Liveness_ReceiveFSM");
 	registerNotification("Receiving", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving", "Liveness_ReceiveFSM");
-	this->pEvents_ReceiveFSM->set_event_report(0x2202, report_heartbeart_pulse_, false);
+	pEvents_ReceiveFSM->get_event_handler().register_query(QueryHeartbeatPulse::ID, false);
+	pEvents_ReceiveFSM->get_event_handler().set_report(QueryHeartbeatPulse::ID, &report_heartbeart_pulse_);
 }
 
 void Liveness_ReceiveFSM::sendReportHeartbeatPulseAction(QueryHeartbeatPulse msg, Receive::Body::ReceiveRec transportData)
 {
 	/// Insert User Code HERE
   /// Insert User Code HERE
-    uint16_t subsystem_id = transportData.getSourceID()->getSubsystemID();
-    uint8_t node_id = transportData.getSourceID()->getNodeID();
-    uint8_t component_id = transportData.getSourceID()->getComponentID();
-    JausAddress sender(subsystem_id, node_id, component_id);
-    ROS_DEBUG_NAMED("Liveness", "Sending ReportHeartbeatPulse to %d.%d.%d", subsystem_id, node_id, component_id);
+    JausAddress sender = transportData.getAddress();
+    ROS_DEBUG_NAMED("Liveness", "send ReportHeartbeatPulse to %s", sender.str().c_str());
     ReportHeartbeatPulse response;
     sendJausMessage(response, sender);
 }

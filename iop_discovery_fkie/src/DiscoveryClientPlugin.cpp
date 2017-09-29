@@ -39,11 +39,6 @@ DiscoveryClientPlugin::DiscoveryClientPlugin()
 	p_transport_service = NULL;
 }
 
-DiscoveryClientPlugin::~DiscoveryClientPlugin()
-{
-
-}
-
 JTS::Service* DiscoveryClientPlugin::get_service()
 {
 	return p_my_service;

@@ -44,7 +44,7 @@ EventsClient_ReceiveFSM::EventsClient_ReceiveFSM(urn_jaus_jss_core_Transport::Tr
 	context = new EventsClient_ReceiveFSMContext(*this);
 
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
-	request_id_ = 0;
+	p_request_id_idx = 0;
 }
 
 
@@ -52,6 +52,12 @@ EventsClient_ReceiveFSM::EventsClient_ReceiveFSM(urn_jaus_jss_core_Transport::Tr
 EventsClient_ReceiveFSM::~EventsClient_ReceiveFSM()
 {
 	delete context;
+	//lock_type lock(p_mutex);
+	std::vector<iop::InternalEventClient *>::iterator it;
+	for (it = p_events.begin(); it != p_events.end(); ++it) {
+		delete (*it);
+	}
+	p_events.clear();
 }
 
 void EventsClient_ReceiveFSM::setupNotifications()
@@ -69,72 +75,70 @@ void EventsClient_ReceiveFSM::handleCommandEventAction(CommandEvent msg, Receive
 
 void EventsClient_ReceiveFSM::handleConfirmEventRequestAction(ConfirmEventRequest msg, Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-	uint16_t subsystem_id = transportData.getSourceID()->getSubsystemID();
-	uint8_t node_id = transportData.getSourceID()->getNodeID();
-	uint8_t component_id = transportData.getSourceID()->getComponentID();
-	JausAddress sender(subsystem_id, node_id, component_id);
+	JausAddress sender = transportData.getAddress();
 	jUnsignedByte request_id = msg.getBody()->getConfirmEventRequestRec()->getRequestID();
-	ROS_DEBUG_NAMED("EventsClient", "Confirmed for request_id: %d to %d.%d.%d, rate: %f", request_id,
-			sender.getSubsystemID(), sender.getNodeID(), sender.getComponentID(), msg.getBody()->getConfirmEventRequestRec()->getConfirmedPeriodicRate());
-	mutex.lock();
-	std::map <jUnsignedByte, std::pair<jUnsignedShortInteger, unsigned int> >::iterator it = p_event_requests.find(request_id);
-	if (it != p_event_requests.end()) {
-		if (p_events.find(it->second) == p_events.end()) {
-			p_events.insert(it->second);
-			p_events_confirmed[it->second] = msg.getBody()->getConfirmEventRequestRec()->getEventID();
-			// copy callbacks
-			pMoveToConfirmedHandler(request_id, sender, msg.getBody()->getConfirmEventRequestRec()->getEventID());
-		} else {
-			p_events.erase(it->second);
-			p_events_confirmed.erase(it->second);
-			pRemoveEventConfirmedHandler(sender, msg.getBody()->getConfirmEventRequestRec()->getEventID());
+	ROS_DEBUG_NAMED("EventsClient", "Confirmed for request_id: %d to %s, rate: %.2f", request_id,
+			sender.str().c_str(), msg.getBody()->getConfirmEventRequestRec()->getConfirmedPeriodicRate());
+	lock_type lock(p_mutex);
+	std::vector<iop::InternalEventClient *>::iterator it;
+	for (it = p_events.begin(); it != p_events.end(); ++it) {
+		if ((*it)->handle_confirm(msg, sender)) {
+			if (p_class_events_reply_callback) {
+				p_class_events_reply_callback(sender, (*it)->get_query_msg_id(), true, msg.getBody()->getConfirmEventRequestRec()->getEventID(), 0);
+			}
+			if ((*it)->is_canceld()) {
+				delete (*it);
+				p_events.erase(it);
+				break;
+			}
 		}
-		p_event_requests.erase(it);
-	}
-	mutex.unlock();
-
-	if (p_class_events_reply_callback) {
-		jUnsignedShortInteger query_msg_id = 0;
-		p_class_events_reply_callback(sender, query_msg_id, true, msg.getBody()->getConfirmEventRequestRec()->getEventID(), 0);
 	}
 }
 
 void EventsClient_ReceiveFSM::handleEventAction(Event msg, Receive::Body::ReceiveRec transportData)
 {
-	pInformEventCallbacks(transportData, msg);
-
+	JausAddress sender = transportData.getAddress();
+	jUnsignedByte event_id = msg.getBody()->getEventRec()->getEventID();
+	ROS_DEBUG_NAMED("EventsClient.Event", "event %d from %s received, seqnr: %d", (int)event_id,
+			sender.str().c_str(), msg.getBody()->getEventRec()->getSequenceNumber());
+	lock_type lock(p_mutex);
+	std::vector<iop::InternalEventClient *>::iterator it;
+	for (it = p_events.begin(); it != p_events.end(); ++it) {
+		if ((*it)->handle_event(msg, sender)) {
+		}
+	}
 }
 
 void EventsClient_ReceiveFSM::handleRejectEventRequestAction(RejectEventRequest msg, Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-	uint16_t subsystem_id = transportData.getSourceID()->getSubsystemID();
-	uint8_t node_id = transportData.getSourceID()->getNodeID();
-	uint8_t component_id = transportData.getSourceID()->getComponentID();
-	JausAddress sender(subsystem_id, node_id, component_id);
+	JausAddress sender = transportData.getAddress();
 	jUnsignedByte request_id = msg.getBody()->getRejectEventRequestRec()->getRequestID();
-	ROS_DEBUG_NAMED("EventsClient", "Rejected for request_id: %d to %d.%d.%d, code: %d", request_id,
-			sender.getSubsystemID(), sender.getNodeID(), sender.getComponentID(), msg.getBody()->getRejectEventRequestRec()->getResponseCode());
-	if (p_class_events_reply_callback) {
-		jUnsignedShortInteger query_id = 0;
-		mutex.lock();
-		std::map <jUnsignedByte, std::pair<jUnsignedShortInteger, unsigned int> >::iterator it = p_event_requests.find(request_id);
-		if (it != p_event_requests.end()) {
-			query_id = it->second.first;
-			if (p_events.find(it->second) != p_events.end()) {
-				p_events.erase(it->second);
+	ROS_DEBUG_NAMED("EventsClient", "Rejected for request_id: %d to %s, code: %d", request_id,
+			sender.str().c_str(), msg.getBody()->getRejectEventRequestRec()->getResponseCode());
+	lock_type lock(p_mutex);
+	std::vector<iop::InternalEventClient *>::iterator it;
+	for (it = p_events.begin(); it != p_events.end(); ++it) {
+		if ((*it)->handle_reject(msg, sender)) {
+			if (p_class_events_reply_callback) {
+				p_class_events_reply_callback(sender, (*it)->get_query_msg_id(), false, 255, msg.getBody()->getRejectEventRequestRec()->getResponseCode());
 			}
-			p_event_requests.erase(it);
+			delete (*it);
+			p_events.erase(it);
+			break;
 		}
-		mutex.unlock();
-		p_class_events_reply_callback(sender, query_id, false, 0, msg.getBody()->getRejectEventRequestRec()->getResponseCode());
 	}
 }
 
 void EventsClient_ReceiveFSM::handleReportEventTimeoutAction(ReportEventTimeout msg, Receive::Body::ReceiveRec transportData)
 {
-	//TODO
+	JausAddress reporter(transportData.getAddress());
+	jUnsignedByte rto = msg.getBody()->getReportTimoutRec()->getTimeout();
+	ROS_DEBUG_NAMED("EventsClient", "ReportEventTimeout from %s received: %d sec", reporter.str().c_str(), (int)rto);
+	lock_type lock(p_mutex);
+	std::vector<iop::InternalEventClient *>::iterator it;
+	for (it = p_events.begin(); it != p_events.end(); ++it) {
+		(*it)->set_timeout(msg, reporter);
+	}
 }
 
 void EventsClient_ReceiveFSM::handleReportEventsAction(ReportEvents msg, Receive::Body::ReceiveRec transportData)
@@ -142,95 +146,42 @@ void EventsClient_ReceiveFSM::handleReportEventsAction(ReportEvents msg, Receive
 	/// Insert User Code HERE
 }
 
-void EventsClient_ReceiveFSM::p_create_event(JausAddress address, JTS::Message &query_msg, double rate, jUnsignedByte event_type)
+void EventsClient_ReceiveFSM::create_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg, double rate, jUnsignedByte event_type)
 {
-	std::pair<jUnsignedShortInteger, unsigned int> event_pair = std::make_pair(query_msg.getID(), address.get());
-	bool send_msg = false;
-	CreateEvent create_event;
-	mutex.lock();
-	//  if (p_events.find(event_pair) == p_events.end()) {
-	request_id_++;
-	ROS_DEBUG_NAMED("EventsClient", "Send create event for query=%#x to %d.%d.%d, rate: %f, request_id: %d", query_msg.getID(),
-			address.getSubsystemID(), address.getNodeID(), address.getComponentID(), rate, request_id_);
-	jUnsignedInteger len = query_msg.getSize();
-	unsigned char bytes[len];
-	query_msg.encode(bytes);
-	create_event.getBody()->getCreateEventRec()->setRequestID(request_id_);
-	create_event.getBody()->getCreateEventRec()->setEventType(event_type);
-	create_event.getBody()->getCreateEventRec()->setRequestedPeriodicRate(rate);
-	create_event.getBody()->getCreateEventRec()->getQueryMessage()->set(len, bytes);
-	p_event_requests[request_id_] = event_pair;
-	send_msg = true;
-	//  }
-	mutex.unlock();
-	if (send_msg) {
-		this->sendJausMessage(create_event, address);
+	lock_type lock(p_mutex);
+	iop::InternalEventClient* event = p_get_event(address, query_msg.getID());
+	if (event == NULL) {
+		iop::InternalEventClient *event = new iop::InternalEventClient(*this, handler, p_request_id_idx, query_msg, address, event_type, rate);
+		p_events.push_back(event);
+		event = p_get_event(address, query_msg.getID());
+		p_request_id_idx++;
+	}
+	if (event != NULL) {
+		event->add_handler(handler);
 	}
 }
 
-void EventsClient_ReceiveFSM::cancel_event(JausAddress address, JTS::Message &query_msg)
+void EventsClient_ReceiveFSM::cancel_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg)
 {
-	std::pair<jUnsignedShortInteger, unsigned int> event_pair = std::make_pair(query_msg.getID(), address.get());
-	bool send_msg = false;
-	CancelEvent cancel_event;
-	mutex.lock();
-	request_id_++;
-	ROS_DEBUG_NAMED("EventsClient", "Send cancel event for query=%#x to %d.%d.%d, request_id: %d", query_msg.getID(),
-			address.getSubsystemID(), address.getNodeID(), address.getComponentID(), request_id_);
-	std::map <std::pair<jUnsignedShortInteger, unsigned int>, jByte>::iterator it = p_events_confirmed.find(event_pair);
-	if (it != p_events_confirmed.end()) {
-		cancel_event.getBody()->getCancelEventRec()->setEventID(it->second);
-		cancel_event.getBody()->getCancelEventRec()->setRequestID(request_id_);
-		p_event_requests[request_id_] = event_pair;
-		send_msg = true;
-	}
-	mutex.unlock();
-	if (send_msg) {
-		this->sendJausMessage(cancel_event, address);
+	lock_type lock(p_mutex);
+	iop::InternalEventClient* event = p_get_event(address, query_msg.getID());
+	if (event != NULL) {
+		event->cancel_event(handler);
 	}
 }
 
-void EventsClient_ReceiveFSM::pRemoveEventRequestHandler(jUnsignedByte request_id)
+iop::InternalEventClient* EventsClient_ReceiveFSM::p_get_event(JausAddress address, jUnsignedShortInteger query_msg_id)
 {
-	std::map <jUnsignedByte, boost::function<void (JausAddress &, unsigned int datalen, const unsigned char* data)> >::iterator it;
-	it = p_callbacks_requests.find(request_id);
-	if (it != p_callbacks_requests.end()) {
-		p_callbacks_requests.erase(it);
+	lock_type lock(p_mutex);
+	std::vector<iop::InternalEventClient *>::iterator it;
+	for (it = p_events.begin(); it != p_events.end(); ++it) {
+		iop::InternalEventClient* result = *it;
+		if (result->get_query_msg_id() == query_msg_id
+				&& result->get_remote() == address) {
+			return result;
+		}
 	}
-}
-
-void EventsClient_ReceiveFSM::pRemoveEventConfirmedHandler(JausAddress &address, jUnsignedByte event_id)
-{
-	std::pair<jUnsignedByte, unsigned int> mp = std::make_pair(event_id, address.get());
-	std::map <std::pair<jUnsignedByte, unsigned int>, boost::function<void (JausAddress &, unsigned int datalen, const unsigned char* data)> >::iterator it;
-	it = p_callbacks_confirmed.find(mp);
-	if (it != p_callbacks_confirmed.end()) {
-		p_callbacks_confirmed.erase(it);
-	}
-}
-
-void EventsClient_ReceiveFSM::pMoveToConfirmedHandler(jUnsignedByte request_id, JausAddress &address, jUnsignedByte event_id)
-{
-	std::pair<jUnsignedByte, unsigned int> mp = std::make_pair(event_id, address.get());
-	std::map <jUnsignedByte, boost::function<void (JausAddress &, unsigned int datalen, const unsigned char* data)> >::iterator it;
-	it = p_callbacks_requests.find(request_id);
-	if (it != p_callbacks_requests.end()) {
-		p_callbacks_confirmed[mp] = it->second;
-		p_callbacks_requests.erase(it);
-	}
-}
-
-void EventsClient_ReceiveFSM::pInformEventCallbacks(Receive::Body::ReceiveRec &transport_data, Event &msg)
-{
-	uint16_t subsystem_id = transport_data.getSourceID()->getSubsystemID();
-	uint8_t node_id = transport_data.getSourceID()->getNodeID();
-	uint8_t component_id = transport_data.getSourceID()->getComponentID();
-	JausAddress sender(subsystem_id, node_id, component_id);
-	std::map <std::pair<jUnsignedByte, unsigned int>, boost::function<void (JausAddress &, unsigned int datalen, const unsigned char* data)> >::iterator it;
-	it = p_callbacks_confirmed.find(std::make_pair(msg.getBody()->getEventRec()->getEventID(), sender.get()));
-	if (it != p_callbacks_confirmed.end()) {
-		it->second(sender, msg.getBody()->getEventRec()->getReportMessage()->getLength(), msg.getBody()->getEventRec()->getReportMessage()->getData());
-	}
+	return NULL;
 }
 
 

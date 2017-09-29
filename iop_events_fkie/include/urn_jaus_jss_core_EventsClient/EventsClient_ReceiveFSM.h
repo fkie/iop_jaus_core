@@ -38,7 +38,10 @@ along with this program; or you can read the full license at
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <ros/ros.h>
+#include <iop_events_fkie/InternalEventClient.h>
+#include <iop_events_fkie/EventHandlerInterface.h>
 #include "EventsClient_ReceiveFSM_sm.h"
 
 namespace urn_jaus_jss_core_EventsClient
@@ -76,15 +79,8 @@ public:
 	 * event_type:
 	 * 0 = Periodic
 	 * 1 = Every Change */
-	template<class T>
-	void create_event(void(T::*handler)(JausAddress &, unsigned int reportlen, const unsigned char* reportdata), T*obj, JausAddress address, JTS::Message &query_msg, double rate=1.0, jUnsignedByte event_type=0)
-	{
-		boost::function<void (JausAddress &, unsigned int reportlen, const unsigned char* reportdata)> callback = boost::bind(handler, obj, _1, _2, _3);
-		p_callbacks_requests[request_id_+1] = callback;
-		p_create_event(address, query_msg, rate, event_type);
-	}
-
-	void cancel_event(JausAddress address, JTS::Message &query_msg);
+	void create_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg, double rate=1.0, jUnsignedByte event_type=0);
+	void cancel_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg);
 	/** You can register a handler to be informed about the creation/cancelation status of your events. To register the handler you
 	 * have to define a function in your class:
 	 * void my_handler(JausAddress &addr, jUnsignedShortInteger query_msg_id, bool accepted, jByte event_id, jUnsignedByte reject_code) {}
@@ -107,19 +103,14 @@ protected:
 
     /// References to parent FSMs
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
+	std::vector<iop::InternalEventClient *> p_events;
+	jUnsignedByte p_request_id_idx;
+	typedef boost::recursive_mutex mutex_type;
+	typedef boost::unique_lock<mutex_type> lock_type;
+	mutable mutex_type p_mutex;
 	boost::function<void (JausAddress &, jUnsignedShortInteger query_msg_id, bool accepted, jByte event_id, jUnsignedByte reject_code)> p_class_events_reply_callback;
-	std::map <jUnsignedByte, boost::function<void (JausAddress &, unsigned int datalen, const unsigned char* data)> > p_callbacks_requests;  // request_id, callback
-	std::map <std::pair<jUnsignedByte, unsigned int>, boost::function<void (JausAddress &, unsigned int datalen, const unsigned char* data)> > p_callbacks_confirmed;  // <event_id, unsigned int -> JausAddress::get()>, callback
-	std::set <std::pair<jUnsignedShortInteger, unsigned int> > p_events;  // unsigned int -> JausAddress::get()
-	std::map <jUnsignedByte, std::pair<jUnsignedShortInteger, unsigned int> > p_event_requests;  // unsigned int -> JausAddress::get()
-	std::map <std::pair<jUnsignedShortInteger, unsigned int>, jByte> p_events_confirmed;  // unsigned int -> JausAddress::get()
-	jUnsignedByte request_id_;
-	DeVivo::Junior::JrMutex mutex;
-	void p_create_event(JausAddress address, JTS::Message &query_msg, double rate=1.0, jUnsignedByte event_type=0);
-	void pRemoveEventRequestHandler(jUnsignedByte request_id);
-	void pRemoveEventConfirmedHandler(JausAddress &address, jUnsignedByte event_id);
-	void pMoveToConfirmedHandler(jUnsignedByte request_id, JausAddress &address, jUnsignedByte event_id);
-	void pInformEventCallbacks(Receive::Body::ReceiveRec &transport_data, Event &msg);
+
+	iop::InternalEventClient* p_get_event(JausAddress address, jUnsignedShortInteger query_msg_id);
 };
 
 };

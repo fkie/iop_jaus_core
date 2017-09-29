@@ -15,6 +15,7 @@ iop_export_service(urn_jaus_jss_core_Events
 ## catkin specific configuration ##
 ###################################
 catkin_package(
+    INCLUDE_DIRS include/public
     LIBRARIES ${PROJECT_NAME}
     CATKIN_DEPENDS iop_transport_fkie
 )
@@ -39,11 +40,17 @@ iop_code_generator(
   GENERATED_SOURCES cppfiles
 )
 
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS}
+                    include/public
+                    )
 
 add_library(${PROJECT_NAME}
+            src/EventsConfig.cpp
             src/EventsClientPlugin.cpp
             src/EventsPlugin.cpp
+            src/InternalEvent.cpp
+            src/InternalEventClient.cpp
+            src/InternalEventList.cpp
             ${cppfiles}
 )
 
@@ -54,6 +61,12 @@ target_link_libraries(${PROJECT_NAME}
 
 install(
   DIRECTORY ${IOP_INSTALL_INCLUDE_DIRS} DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
+  PATTERN "*.old" EXCLUDE
+  PATTERN "*.gen" EXCLUDE
+)
+
+install(
+  DIRECTORY include/public/${PROJECT_NAME} DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   PATTERN "*.old" EXCLUDE
   PATTERN "*.gen" EXCLUDE
 )
