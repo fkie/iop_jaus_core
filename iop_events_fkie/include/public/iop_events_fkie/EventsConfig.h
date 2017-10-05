@@ -47,8 +47,6 @@ public:
 	int get_timeout();
 
 protected:
-	ros::NodeHandle p_nh;
-	ros::NodeHandle p_pnh;
 	int p_default_timeout;
 };
 

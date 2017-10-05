@@ -39,7 +39,6 @@ along with this program; or you can read the full license at
 
 
 #include "DiscoveryClient_ReceiveFSM_sm.h"
-#include <iop_discovery_fkie/DiscoveryConfig.h>
 #include "urn_jaus_jss_core_Discovery/Discovery_ReceiveFSM.h"
 
 #include <boost/bind.hpp>
@@ -59,6 +58,11 @@ along with this program; or you can read the full license at
 
 namespace urn_jaus_jss_core_DiscoveryClient
 {
+
+const int TYPE_SYSTEM = 1;
+const int TYPE_SUBSYSTEM = 2;
+const int TYPE_NODE = 3;
+const int TYPE_COMPONENT = 4;
 
 using namespace urn_jaus_jss_core_Discovery;
 
@@ -163,8 +167,10 @@ protected:
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
 	urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM;
 
-	ros::NodeHandle p_nh;
-	ros::NodeHandle p_pnh;
+	// ros parameter
+	// 0: Reserved, 1: System Identification, 2: Subsystem Identification, 3: Node Identification, 4: Component Identification, 5 - 255: Reserved
+	int system_id;
+	bool register_own_services;
 	Discovery_ReceiveFSM *p_discovery_fsm;
 	int p_current_timeout;
 	int p_force_component_update_after;
@@ -172,7 +178,6 @@ protected:
 	bool p_is_registered;
 	bool p_on_registration;
 	int p_count_discover_tries;
-	discovery_config::DiscoveryConfig p_discovery_config;
 	std::vector<ServiceDef> p_own_uri_services;
 	/** Variables used for registration by subsystem or node **/
 	JausAddress p_addr_discovery_service;
@@ -212,7 +217,7 @@ protected:
 	bool pQueryIdentificationSrv(iop_msgs_fkie::QueryIdentification::Request  &req, iop_msgs_fkie::QueryIdentification::Response &res);
 	bool pUpdateSystemSrv(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res);
 	void pDiscover(std::string service_uri, int major_version=1, int minor_version=0, int subsystem=65535);
-
+	std::map<int, std::string> p_system_id_map();
 
 };
 

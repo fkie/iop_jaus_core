@@ -24,6 +24,7 @@ along with this program; or you can read the full license at
 #include "urn_jaus_jss_core_AccessControl/AccessControl_ReceiveFSM.h"
 #include <ros/console.h>
 #include <std_msgs/Bool.h>
+#include <iop_component_fkie/iop_config.h>
 
 
 using namespace JTS;
@@ -55,7 +56,6 @@ AccessControl_ReceiveFSM::AccessControl_ReceiveFSM(urn_jaus_jss_core_Transport::
 	p_timeout_event = new InternalEvent("Timedout", "ControlTimeout");
 	context = new AccessControl_ReceiveFSMContext(*this);
 	p_timer = new DeVivo::Junior::JrTimer(Timeout, this, p_default_timeout*1000);
-	p_pnh = ros::NodeHandle("~");
 
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEvents_ReceiveFSM = pEvents_ReceiveFSM;
@@ -80,8 +80,12 @@ void AccessControl_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving_Ready", "AccessControl_ReceiveFSM");
 	registerNotification("Receiving", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving", "AccessControl_ReceiveFSM");
 
-	p_is_controlled_publisher = p_pnh.advertise<std_msgs::Bool>("is_controlled", 5, true);
-	p_pnh.param("access_timeout", p_default_timeout, p_default_timeout);
+	iop::Config cfg("~AccessControl");
+	cfg.param("access_timeout", p_default_timeout, p_default_timeout);
+	p_timer->stop();
+	delete p_timer;
+	p_timer = new DeVivo::Junior::JrTimer(Timeout, this, p_default_timeout*1000);
+	p_is_controlled_publisher = cfg.advertise<std_msgs::Bool>("is_controlled", 5, true);
 	pPublishControlState(false);
 }
 

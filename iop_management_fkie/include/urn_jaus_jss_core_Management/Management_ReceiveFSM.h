@@ -103,7 +103,6 @@ protected:
 	urn_jaus_jss_core_AccessControl::AccessControl_ReceiveFSM* pAccessControl_ReceiveFSM;
 
 	std::vector<JausAddress> p_emergency_clients;
-	ros::NodeHandle p_pnh;
 	ros::Publisher p_pub_emergency;
 	ros::Publisher p_pub_ready;
 	int getStateID();

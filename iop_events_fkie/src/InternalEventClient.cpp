@@ -106,6 +106,7 @@ void InternalEventClient::set_timeout(urn_jaus_jss_core_EventsClient::ReportEven
 	if (reporter == p_remote) {
 		jUnsignedByte timeout = msg.getBody()->getReportTimoutRec()->getTimeout();
 		ROS_DEBUG_NAMED("EventsClient", "update timeout %d sec for event %d with query=%#x to %s, request_id: %d", timeout, p_event_id, p_query_msg_id, p_remote.str().c_str(), p_request_id);
+		timeout = timeout / 2.0;
 		if (timeout != p_timeout) {
 			if (p_timeout_timer.isValid()) {
 				p_timeout_timer.stop();

@@ -167,11 +167,8 @@ void AccessControlClient_ReceiveFSM::handleReportTimeoutAction(ReportTimeout msg
 	uint8_t component_id = transportData.getSourceID()->getComponentID();
 	JausAddress sender(subsystem_id, node_id, component_id);
 	int rtimeout = msg.getBody()->getReportTimoutRec()->getTimeout();
-	ROS_DEBUG_NAMED("AccessControlClient", "Current Timeout of %d.%d.%d: %d", subsystem_id, node_id, component_id, rtimeout);
-	p_timeouts[sender.get()] = rtimeout;
-//  if (!p_class_access_reply_callback.empty()) {
-//    p_class_access_reply_callback(sender, ACCESS_STATE_TIMEOUT);
-//  }
+	ROS_DEBUG_NAMED("AccessControlClient", "received access timeout for %d.%d.%d: %d sec", subsystem_id, node_id, component_id, rtimeout);
+	p_timeouts[sender.get()] = rtimeout / 2.0;
 }
 
 void AccessControlClient_ReceiveFSM::resetControlTimerAction()

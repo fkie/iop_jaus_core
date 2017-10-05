@@ -26,6 +26,7 @@ along with this program; or you can read the full license at
 #include <ros/console.h>
 #include <string.h>
 #include <algorithm>
+#include <iop_component_fkie/iop_config.h>
 
 
 using namespace JTS;
@@ -44,6 +45,10 @@ Discovery_ReceiveFSM::Discovery_ReceiveFSM(urn_jaus_jss_core_Transport::Transpor
 	context = new Discovery_ReceiveFSMContext(*this);
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEvents_ReceiveFSM = pEvents_ReceiveFSM;
+	system_id = 4;
+	system_type = 6001;
+	name_subsystem = "Robotname";
+	name_node = "Componentname";
 }
 
 Discovery_ReceiveFSM::~Discovery_ReceiveFSM()
@@ -95,7 +100,33 @@ void Discovery_ReceiveFSM::setupNotifications()
 	pEvents_ReceiveFSM->registerNotification("Receiving", ieHandler, "InternalStateChange_To_Discovery_ReceiveFSM_Receiving_Ready", "Events_ReceiveFSM");
 	registerNotification("Receiving_Ready", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving_Ready", "Discovery_ReceiveFSM");
 	registerNotification("Receiving", pEvents_ReceiveFSM->getHandler(), "InternalStateChange_To_Events_ReceiveFSM_Receiving", "Discovery_ReceiveFSM");
-	p_discovery_config.update_ros_parameter();
+	iop::Config cfg("~Discovery");
+	cfg.param("system_id", system_id, system_id, true, true, "", system_id_map());
+	cfg.param("system_type", system_type, system_type, true, true, "", system_type_map());
+	cfg.param("name_subsystem", name_subsystem, name_subsystem);
+	cfg.param("name_node", name_node, name_node);
+}
+
+std::map<int, std::string> Discovery_ReceiveFSM::system_id_map()
+{
+	std::map<int, std::string> result;
+	result[1] = "System";
+	result[2] = "Subsystem";
+	result[3] = "Node";
+	result[4] = "Component";
+	return result;
+}
+
+std::map<int, std::string> Discovery_ReceiveFSM::system_type_map()
+{
+	std::map<int, std::string> result;
+	result[10001] = "VEHICLE";
+	result[20001] = "OCU";
+	result[30001] = "OTHER_SUBSYSTEM";
+	result[40001] = "NODE";
+	result[50001] = "PAYLOAD";
+	result[60001] = "COMPONENT";
+	return result;
 }
 
 void Discovery_ReceiveFSM::publishServicesAction(RegisterServices msg, Receive::Body::ReceiveRec transportData)
@@ -173,30 +204,30 @@ void Discovery_ReceiveFSM::sendReportIdentificationAction(QueryIdentification ms
 //				 query_type,
 //				 transportData.getSrcSubsystemID(),
 //				 transportData.getSrcNodeID(), transportData.getSrcComponentID());
-	if (p_discovery_config.system_id <= query_type) {
+	if (system_id <= query_type) {
 		JausAddress sender(transportData.getSourceID()->getSubsystemID(),
 				transportData.getSourceID()->getNodeID(),
 				transportData.getSourceID()->getComponentID());
 		ReportIdentification report_msg;
 		std::string name = "InvalidName";
-		if (query_type == discovery_config::TYPE_COMPONENT) {
+		if (query_type == TYPE_COMPONENT) {
 			name = ros::this_node::getName();
-		} else if (query_type == discovery_config::TYPE_NODE)	{
-			name = p_discovery_config.name_node;
-		} else if (query_type == discovery_config::TYPE_SUBSYSTEM) {
-			name = p_discovery_config.name_subsystem;
-		} else if (query_type == discovery_config::TYPE_SYSTEM) {
+		} else if (query_type == TYPE_NODE)	{
+			name = name_node;
+		} else if (query_type == TYPE_SUBSYSTEM) {
+			name = name_subsystem;
+		} else if (query_type == TYPE_SYSTEM) {
 			name = "System";
 		}
 		ROS_DEBUG_NAMED("Discovery", "sendReportIdentification to %d.%d.%d: query_type: %d, system_type: %d, name: %s",
 				transportData.getSourceID()->getSubsystemID(), transportData.getSourceID()->getNodeID(), transportData.getSourceID()->getComponentID(),
-				query_type, p_discovery_config.system_type, name.c_str());
+				query_type, system_type, name.c_str());
 		report_msg.getBody()->getReportIdentificationRec()->setQueryType(query_type);
-		report_msg.getBody()->getReportIdentificationRec()->setType(p_discovery_config.system_type);
+		report_msg.getBody()->getReportIdentificationRec()->setType(system_type);
 		report_msg.getBody()->getReportIdentificationRec()->setIdentification(name);
 		sendJausMessage(report_msg, sender);
 	} else {
-		printf("[Discovery] sendReportIdentification own system_id_type: %d>%d (query_type), do not response\n", p_discovery_config.system_id, query_type);
+		printf("[Discovery] sendReportIdentification own system_id_type: %d>%d (query_type), do not response\n", system_id, query_type);
 	}
 }
 
@@ -207,7 +238,7 @@ void Discovery_ReceiveFSM::sendReportServiceListAction(QueryServiceList msg, Rec
 	JausAddress sender(transportData.getSourceID()->getSubsystemID(),
 			transportData.getSourceID()->getNodeID(),
 			transportData.getSourceID()->getComponentID());
-	if (p_discovery_config.system_id == discovery_config::TYPE_SUBSYSTEM) {
+	if (system_id == TYPE_SUBSYSTEM) {
 		ReportServiceList report_msg;
 		int cnt_services = 0;
 		for (unsigned int si=0; si < uri_services.size(); si++) {
@@ -323,7 +354,7 @@ void Discovery_ReceiveFSM::sendReportServicesAction(QueryServices msg, Receive::
 			transportData.getSourceID()->getNodeID(),
 			transportData.getSourceID()->getComponentID());
 //	msg.getBody()->getNodeList()->getElement(0)->getNodeRec()->getNodeID()
-	if (p_discovery_config.system_id == discovery_config::TYPE_SUBSYSTEM) {
+	if (system_id == TYPE_SUBSYSTEM) {
 		ReportServices report_msg;
 		int cnt_nodes = 0;
 		int cnt_cmps = 0;
@@ -412,7 +443,7 @@ void Discovery_ReceiveFSM::sendReportSubsystemListAction(QuerySubsystemList msg,
 			transportData.getSourceID()->getComponentID());
 	ReportSubsystemList report_msg;
 	ROS_DEBUG_NAMED("Discovery", "	known subsystems: %lu", p_subsystems.size());
-	if (p_discovery_config.system_id == discovery_config::TYPE_SYSTEM) {
+	if (system_id == TYPE_SYSTEM) {
 		// add only the discovery services of a subsystems
 		for (int i=0; i < p_subsystems.size(); i++) {
 			ReportSubsystemList::Body::SubsystemList::SubsystemRec comp;

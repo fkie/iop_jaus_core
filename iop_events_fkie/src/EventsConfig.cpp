@@ -22,6 +22,7 @@ along with this program; or you can read the full license at
 
 
 #include <iop_events_fkie/EventsConfig.h>
+#include <iop_component_fkie/iop_config.h>
 
 using namespace iop;
 
@@ -33,11 +34,8 @@ GNU_CONST_STATIC_FLOAT_DECLARATION float EventsConfig::RATE_PRECISION = 0.1f;
 EventsConfig::EventsConfig()
 {
 	p_default_timeout = 60;
-	p_pnh = ros::NodeHandle("~");
-	if (!p_pnh.getParam("events_timeout", p_default_timeout)) {
-		p_nh.param("events_timeout", p_default_timeout, p_default_timeout);
-	}
-	ROS_INFO_NAMED("Events", "events_timeout: %d sec", p_default_timeout);
+	iop::Config cfg("~Events");
+	cfg.param("events_timeout", p_default_timeout, p_default_timeout);
 }
 
 EventsConfig::EventsConfig(EventsConfig const& from)

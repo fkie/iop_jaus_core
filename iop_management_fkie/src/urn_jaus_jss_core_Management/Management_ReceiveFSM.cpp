@@ -25,6 +25,7 @@ along with this program; or you can read the full license at
 
 #include <ros/console.h>
 #include <std_msgs/Bool.h>
+#include <iop_component_fkie/iop_config.h>
 
 
 using namespace JTS;
@@ -47,7 +48,6 @@ Management_ReceiveFSM::Management_ReceiveFSM(urn_jaus_jss_core_Transport::Transp
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEvents_ReceiveFSM = pEvents_ReceiveFSM;
 	this->pAccessControl_ReceiveFSM = pAccessControl_ReceiveFSM;
-	p_pnh = ros::NodeHandle("~");
 }
 
 
@@ -77,8 +77,9 @@ void Management_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready", "Management_ReceiveFSM");
 	registerNotification("Receiving", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving", "Management_ReceiveFSM");
 
-	p_pub_emergency = p_pnh.advertise<std_msgs::Bool>("is_emergency", 5, true);
-	p_pub_ready = p_pnh.advertise<std_msgs::Bool>("is_ready", 5, true);
+	iop::Config cfg("~AccessControl");
+	p_pub_emergency = cfg.advertise<std_msgs::Bool>("is_emergency", 5, true);
+	p_pub_ready = cfg.advertise<std_msgs::Bool>("is_ready", 5, true);
 }
 
 void Management_ReceiveFSM::deleteIDAction(Receive::Body::ReceiveRec transportData)

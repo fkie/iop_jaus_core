@@ -86,7 +86,6 @@ protected:
 	jUnsignedByte p_default_authority;
 	int p_default_timeout;
 	bool p_control_available;
-	ros::NodeHandle p_pnh;
 	ros::Publisher p_is_controlled_publisher;
     /// References to parent FSMs
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;

@@ -77,29 +77,6 @@ protected:
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
 	iop::InternalEventList p_event_list;
 
-//	class EventData {
-//	public:
-//		jUnsignedByte eventid;
-//		Event event;
-//		jUnsignedShortInteger query_msg_id;
-//		jUnsignedByte event_type;
-//		double rate;
-//		jUnsignedByte seq_nr;
-//		JausAddress sender;
-//		EventData() {eventid = 255; query_msg_id = 0; event_type = 0; rate = 0.; seq_nr = 0;}
-//		EventData(jUnsignedShortInteger query_msg_id, Receive::Body::ReceiveRec transportData);
-//		bool operator==(EventData &value);
-//		bool operator!=(EventData &value);
-//	};
-//	std::map<jUnsignedShortInteger, JTS::Message *> p_registered_events;
-//	std::set<jUnsignedByte> p_registered_events_onchange_;
-//	std::map<jUnsignedByte, EventData> p_current_events;
-//	std::deque<std::pair<double, jUnsignedByte> > p_timeout_events;
-//	void startTimer(int ms);
-//	jUnsignedShortInteger pMessageIDFromData(const unsigned char *data);
-//	jUnsignedByte pGetFreeEventID();
-//	bool hasEvent(const unsigned char *data, Receive::Body::ReceiveRec transportData);
-//	void append2timeout(jUnsignedByte eventid);
 };
 
 };
