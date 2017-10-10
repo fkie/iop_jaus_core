@@ -83,8 +83,10 @@ void AccessControl_ReceiveFSM::setupNotifications()
 	iop::Config cfg("~AccessControl");
 	cfg.param("access_timeout", p_default_timeout, p_default_timeout);
 	p_timer->stop();
-	delete p_timer;
-	p_timer = new DeVivo::Junior::JrTimer(Timeout, this, p_default_timeout*1000);
+	if (p_default_timeout > 0) {
+		delete p_timer;
+		p_timer = new DeVivo::Junior::JrTimer(Timeout, this, p_default_timeout*1000);
+	}
 	p_is_controlled_publisher = cfg.advertise<std_msgs::Bool>("is_controlled", 5, true);
 	pPublishControlState(false);
 }
@@ -108,7 +110,9 @@ void AccessControl_ReceiveFSM::resetTimerAction()
 	/// Insert User Code HERE
 //  printf("[AccessControl] ResetTimerAction: restart timer\n");
 	p_timer->stop();
-	p_timer->start();
+	if (p_default_timeout > 0) {
+		p_timer->start();
+	}
 }
 
 void AccessControl_ReceiveFSM::sendConfirmControlAction(RequestControl msg, std::string arg0, Receive::Body::ReceiveRec transportData)
@@ -123,7 +127,9 @@ void AccessControl_ReceiveFSM::sendConfirmControlAction(RequestControl msg, std:
 	uint8_t responseCode = 0;
 	if (arg0 == "CONTROL_ACCEPTED") {
 		responseCode = 0;
-		p_timer->start();
+		if (p_default_timeout > 0) {
+			p_timer->start();
+		}
 	} else if (arg0 == "NOT_AVAILABLE") {
 		responseCode = 1;
 	} else if (arg0 == "INSUFFICIENT_AUTHORITY") {

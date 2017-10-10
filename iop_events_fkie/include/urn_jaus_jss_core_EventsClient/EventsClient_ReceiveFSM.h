@@ -77,9 +77,9 @@ public:
 	 * MAXIMUM_RATE = 25.0
 	 *
 	 * event_type:
-	 * 0 = Periodic
-	 * 1 = Every Change */
-	void create_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg, double rate=1.0, jUnsignedByte event_type=0);
+	 * 0 = Periodic, on valid rate
+	 * 1 = Every Change, if rate is less then 0.1 or more then 25 */
+	void create_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg, double rate=1.0);
 	void cancel_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg);
 	/** You can register a handler to be informed about the creation/cancelation status of your events. To register the handler you
 	 * have to define a function in your class:

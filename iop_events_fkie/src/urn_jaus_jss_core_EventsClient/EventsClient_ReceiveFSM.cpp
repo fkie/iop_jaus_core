@@ -146,11 +146,15 @@ void EventsClient_ReceiveFSM::handleReportEventsAction(ReportEvents msg, Receive
 	/// Insert User Code HERE
 }
 
-void EventsClient_ReceiveFSM::create_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg, double rate, jUnsignedByte event_type)
+void EventsClient_ReceiveFSM::create_event(iop::EventHandlerInterface &handler, JausAddress address, JTS::Message &query_msg, double rate)
 {
 	lock_type lock(p_mutex);
 	iop::InternalEventClient* event = p_get_event(address, query_msg.getID());
 	if (event == NULL) {
+		jUnsignedByte event_type = 0;
+		if (rate < 0.1 || rate > 25.0) {
+			event_type = 1;
+		}
 		iop::InternalEventClient *event = new iop::InternalEventClient(*this, handler, p_request_id_idx, query_msg, address, event_type, rate);
 		p_events.push_back(event);
 		event = p_get_event(address, query_msg.getID());
