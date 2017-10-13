@@ -162,4 +162,65 @@ This service register events on Events service and update it to avoid timeout or
 > None
 
 
+
+## _iop_liveness_fkie:_ Liveness
+
+This service sends ReportHeartbeatPulse on request or as event.
+
+#### Parameter:
+
+> None
+
+#### Publisher:
+
+> None
+
+#### Subscriber:
+
+> None
+
+
+
+## _iop_management_fkie:_ Management
+
+Implements rudimentary management functions.
+
+#### Parameter:
+
+> None
+
+#### Publisher:
+
+_is_emergency (std_msgs::Bool)_, latched
+
+> Publishes __true__ if the component changes into emergency state settled  by client.
+
+_is_ready (std_msgs::Bool)_, latched
+
+> Publishes __true__ if the component changes in the ready state.
+
+#### Subscriber:
+
+> None
+
+## _iop_management_fkie:_ ManagementClient
+
+Currently only "Resume" implemented. This is used by Slave library. The possibility to change into other state are not supported.
+
+#### Parameter:
+
+> None
+
+#### Publisher:
+
+> None
+
+#### Subscriber:
+
+> None
+
+## _iop_transport_fkie:_ Transport
+
+No function beside generated code, it's only plugin.
+
 #To be continued...
