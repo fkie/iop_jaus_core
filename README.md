@@ -25,7 +25,7 @@ Implements the functionality for exclusive control. By default a timeout of 10 s
 
 #### Parameter:
 
-_access_timeout_ (int_, (Default: 10)
+_access_timeout (int_, (Default: 10)
 
 > Time period in seconds after which the exclusive control goes lost. Zero disables the timeout.
 
@@ -52,19 +52,19 @@ The discovery service holds information about System, Subsystem, Node or Compone
 
 #### Parameter:
 
-_system_id_ (int_, (Default: 4)
+_system_id (int_, (Default: 4)
 
 > The ID of the service: 0: Reserved, 1: System Identification, 2: Subsystem Identification, 3: Node Identification, 4: Component Identification, 5 – 255: Reserved
 
-_system_type_ (int_, (Default: 60001)
+_system_type (int_, (Default: 60001)
 
 > 10001: VEHICLE, 20001: OCU, 30001: OTHER_SUBSYSTEM, 40001: NODE, 50001: PAYLOAD, 60001: COMPONENT
 
-_name_subsystem_ (str_, (Default: Robotname)
+_name_subsystem (str_, (Default: Robotname)
 
 > The name of the robot. Only used if the _system_id_ is set to 2 (subsystem).
 
-_name_node_ (str_, (Default: Componentname)
+_name_node (str_, (Default: Componentname)
 
 > The name of the component which includes this service.
 
@@ -84,19 +84,19 @@ A client service to discover other IOP services and register own services by Dis
 
 #### Parameter:
 
-_system_id_ (int_, (Default: 4)
+_system_id (int_, (Default: 4)
 
 > This parameter influence the discover update behaviour only if ROS interface is disabled and all IOP services are already discovered. The same type as in Discovery.
 
-_register_own_services_ (bool_, (Default: true)
+_register_own_services (bool_, (Default: true)
 
 > You can prevent the registration of own services by discovery service. It is useful in case of OCU services.
 
-_force_component_update_after_ (int_, (Default: 300)
+_force_component_update_after (int_, (Default: 300)
 
 > Force the request of service list for all known robot.
 
-_enable_ros_interface_ (bool_, (Default: false)
+_enable_ros_interface (bool_, (Default: false)
 
 > Publish the discovered services to the ROS network. On false the publisher are not created.
 
@@ -124,6 +124,42 @@ _/iop_query_identification (iop_msgs_fkie::QueryIdentification)_
 _/iop_update_discovery (std_srvs::Empty)_
 
 > Tries to update the whole system.
+
+
+
+## _iop_events_fkie:_ Events
+
+The Events service implements the functionality to send registered events. The events are reports registered by plugins on load. Events supports periodic and on change notifications. Currently CommandEvents are not supported.
+
+#### Parameter:
+
+_events_timeout (int_, (Default: 60)
+
+> Time period in seconds after which the event will be canceled if no update for event received. Zero disables the timeout.
+
+#### Publisher:
+
+> None
+
+#### Subscriber:
+
+> None
+
+## _iop_events_fkie:_ EventsClient
+
+This service register events on Events service and update it to avoid timeout or if change for event is needed. The received events forwarded to handler plugin which requested the report by event.
+
+#### Parameter:
+
+> None
+
+#### Publisher:
+
+> None
+
+#### Subscriber:
+
+> None
 
 
 #To be continued...
