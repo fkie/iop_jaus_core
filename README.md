@@ -1,11 +1,9 @@
 See [iop_core](https://github.com/fkie/iop_core/blob/master/README.md) for use instructions.
 
-```
-```
 
 # Interfaces
 
-List of services in this repository:
+List of service plugins in this repository:
 ```
 iop_accesscontrol_fkie: AccessControl
 iop_accesscontrol_fkie: AccessControlClient
@@ -222,5 +220,3 @@ Currently only "Resume" implemented. This is used by Slave library. The possibil
 ## _iop_transport_fkie:_ Transport
 
 No function beside generated code, it's only plugin.
-
-#To be continued...
