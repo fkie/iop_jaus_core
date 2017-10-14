@@ -4,18 +4,17 @@ See [iop_core](https://github.com/fkie/iop_core/blob/master/README.md) for use i
 # Interfaces
 
 List of service plugins in this repository:
-```
-iop_accesscontrol_fkie: AccessControl
-iop_accesscontrol_fkie: AccessControlClient
-iop_discovery_fkie: Discovery
-iop_discovery_fkie: DiscoveryClient
-iop_events_fkie: Events
-iop_events_fkie: EventsClient
-iop_liveness_fkie: Liveness
-iop_management_fkie: Management
-iop_management_fkie: ManagementClient
-iop_transport_fkie: Transport
-```
+
+[iop_accesscontrol_fkie: AccessControl](#iop_accesscontrol_fkie-accesscontrol)  
+[iop_accesscontrol_fkie: AccessControlClient](#iop_accesscontrol_fkie-accesscontrolclient)  
+[iop_discovery_fkie: Discovery](#iop_discovery_fkie-discovery)  
+[iop_discovery_fkie: DiscoveryClient](#iop_discovery_fkie-discoveryclient)  
+[iop_events_fkie: Events](#iop_events_fkie-events)  
+[iop_events_fkie: EventsClient](#iop_events_fkie-eventsclient)  
+[iop_liveness_fkie: Liveness](#iop_liveness_fkie-liveness)  
+[iop_management_fkie: Management](#iop_management_fkie-management)  
+[iop_management_fkie: ManagementClient](#iop_management_fkie-managementclient)  
+[iop_transport_fkie: Transport](#iop_transport_fkie-transport)  
 
 ## _iop_accesscontrol_fkie:_ AccessControl
 
