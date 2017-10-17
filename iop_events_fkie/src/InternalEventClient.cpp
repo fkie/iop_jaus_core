@@ -35,7 +35,7 @@ InternalEventClient::InternalEventClient(urn_jaus_jss_core_EventsClient::EventsC
 {
 	p_parent = &parent;
 	p_query_msg = &query_msg;
-	p_timeout = 60;
+	p_timeout = 1;
 	p_request_id = request_id;
 	p_event_id = 255;
 	p_query_msg_id = query_msg.getID();
@@ -210,7 +210,7 @@ void InternalEventClient::timeout(const ros::TimerEvent& event)
 void InternalEventClient::p_timer_stop()
 {
 	if (p_timeout_timer.isValid()) {
-		ROS_DEBUG_NAMED("EventsClient", "stop timeout timer for report %#x with timeout %d to %s", p_query_msg_id, p_timeout, p_remote.str().c_str());
+		ROS_DEBUG_NAMED("EventsClient", "stop timeout timer for report %#x with timeout %d to %min", p_query_msg_id, p_timeout, p_remote.str().c_str());
 		p_timeout_timer.stop();
 	}
 }
@@ -218,8 +218,8 @@ void InternalEventClient::p_timer_stop()
 void InternalEventClient::p_timer_start()
 {
 	if (p_event_id != 255 && p_timeout > 0) {
-		ROS_DEBUG_NAMED("EventsClient", "start timeout timer for %#x with timeout %d to %s", p_query_msg_id, p_timeout, p_remote.str().c_str());
-		p_timeout_timer = p_nh.createTimer(ros::Duration(p_timeout - 0.5), &InternalEventClient::timeout, this);
+		ROS_DEBUG_NAMED("EventsClient", "start timeout timer for %#x with timeout %d to %min", p_query_msg_id, p_timeout, p_remote.str().c_str());
+		p_timeout_timer = p_nh.createTimer(ros::Duration(p_timeout * 60.0 - 2), &InternalEventClient::timeout, this);
 		p_timeout_timer.start();
 	}
 }

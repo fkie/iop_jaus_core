@@ -52,7 +52,7 @@ void InternalEventList::p_timeout(const ros::TimerEvent& event)
 	ros::Time now = ros::Time::now();
 	std::map<jUnsignedByte, boost::shared_ptr<iop::InternalEvent> >::iterator it;
 	for (it = p_events.begin(); it != p_events.end(); ++it) {
-		if (now - it->second->get_last_update_time() > ros::Duration(p_config.get_timeout())) {
+		if (now - it->second->get_last_update_time() > ros::Duration(p_config.get_timeout() * 60.0)) {
 			ROS_WARN_NAMED("Events", "event %d with query %#x to %s timed out, remove",
 					it->second->get_event_id(), it->second->get_query_msg_id(), it->second->requestor.str().c_str());
 			p_events.erase(it);

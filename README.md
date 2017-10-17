@@ -130,9 +130,9 @@ The Events service implements the functionality to send registered events. The e
 
 #### Parameter:
 
-_events_timeout (int_, (Default: 60)
+_events_timeout (int_, (Default: 1)
 
-> Time period in seconds after which the event will be canceled if no update for event received. Zero disables the timeout.
+> Time period in minutes after which the event will be canceled if no update for event received. Zero disables the timeout.
 
 #### Publisher:
 
