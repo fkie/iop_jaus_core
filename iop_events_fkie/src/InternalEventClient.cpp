@@ -105,8 +105,7 @@ void InternalEventClient::set_timeout(urn_jaus_jss_core_EventsClient::ReportEven
 {
 	if (reporter == p_remote) {
 		jUnsignedByte timeout = msg.getBody()->getReportTimoutRec()->getTimeout();
-		ROS_DEBUG_NAMED("EventsClient", "update timeout %d sec for event %d with query=%#x to %s, request_id: %d", timeout, p_event_id, p_query_msg_id, p_remote.str().c_str(), p_request_id);
-		timeout = timeout / 2.0;
+		ROS_DEBUG_NAMED("EventsClient", "update timeout %d min for event %d with query=%#x to %s, request_id: %d", timeout, p_event_id, p_query_msg_id, p_remote.str().c_str(), p_request_id);
 		if (timeout != p_timeout) {
 			if (p_timeout_timer.isValid()) {
 				p_timeout_timer.stop();
@@ -210,7 +209,7 @@ void InternalEventClient::timeout(const ros::TimerEvent& event)
 void InternalEventClient::p_timer_stop()
 {
 	if (p_timeout_timer.isValid()) {
-		ROS_DEBUG_NAMED("EventsClient", "stop timeout timer for report %#x with timeout %d to %min", p_query_msg_id, p_timeout, p_remote.str().c_str());
+		ROS_DEBUG_NAMED("EventsClient", "stop timeout timer for report %#x with timeout %d min to %s", p_query_msg_id, p_timeout, p_remote.str().c_str());
 		p_timeout_timer.stop();
 	}
 }
@@ -218,7 +217,7 @@ void InternalEventClient::p_timer_stop()
 void InternalEventClient::p_timer_start()
 {
 	if (p_event_id != 255 && p_timeout > 0) {
-		ROS_DEBUG_NAMED("EventsClient", "start timeout timer for %#x with timeout %d to %min", p_query_msg_id, p_timeout, p_remote.str().c_str());
+		ROS_DEBUG_NAMED("EventsClient", "start timeout timer for %#x with timeout %d min to %s", p_query_msg_id, p_timeout, p_remote.str().c_str());
 		p_timeout_timer = p_nh.createTimer(ros::Duration(p_timeout * 60.0 - 2), &InternalEventClient::timeout, this);
 		p_timeout_timer.start();
 	}
