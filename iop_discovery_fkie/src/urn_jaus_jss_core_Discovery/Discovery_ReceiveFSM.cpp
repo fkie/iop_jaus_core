@@ -74,8 +74,7 @@ void Discovery_ReceiveFSM::registerService(int minver, int maxver, std::string s
 		}
 	}
 	if (isnew) {
-		ROS_INFO_NAMED("Discovery", "register '%s' [%d.%d.%d]",
-				service.getURI().c_str(), address.getSubsystemID(), address.getNodeID(), address.getComponentID());
+		ROS_INFO_NAMED("Discovery", "registered '%s' [%s]", service.getURI().c_str(), address.str().c_str());
 		uri_services.push_back(std::make_pair(service, address));
 	}
 }

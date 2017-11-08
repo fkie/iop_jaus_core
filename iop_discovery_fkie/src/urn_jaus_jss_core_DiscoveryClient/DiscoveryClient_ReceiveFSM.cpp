@@ -245,12 +245,28 @@ void DiscoveryClient_ReceiveFSM::appendServiceUri(std::string service_uri, int m
 	if ( std::find(p_own_uri_services.begin(), p_own_uri_services.end(), service) != p_own_uri_services.end() ) {
 		ROS_INFO_NAMED("DiscoveryClient", "	%s already known", service_uri.c_str());
 	} else {
-		ROS_DEBUG_NAMED("DiscoveryClient", "appendServiceUri: %s", service_uri.c_str());
+		ROS_DEBUG_NAMED("DiscoveryClient", "appendServiceUri: %s for registration", service_uri.c_str());
 		p_own_uri_services.push_back(service);
 		if (register_own_services) {
 			p_is_registered = false;
 		}
 		pCheckTimer();
+	}
+	for (int i = 0; i < p_discover_services.size(); i++) {
+		unsigned short ssid = p_discover_services[i].subsystem;
+		JausAddress addr = *(this->jausRouter->getJausAddress());
+		if (ssid == 65535) {
+			ssid = addr.getSubsystemID();
+		}
+		if (ssid == addr.getSubsystemID()) {
+			if (p_discover_services[i].service.service_uri.compare(service_uri) == 0) {
+				// the service was found, forward the address to the callback
+				ServiceDef service = p_discover_services[i].service;
+				ROS_DEBUG_NAMED("DiscoveryClient", "local service '%s' discovered @%s", service.service_uri.c_str(), addr.str().c_str());
+				p_discover_services[i].discovered_in.insert(ssid);
+				pInformDiscoverCallbacks(service, addr);
+			}
+		}
 	}
 }
 
@@ -773,6 +789,8 @@ void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, int major_ve
 {
 	p_count_discover_tries = 0;
 	ServiceDef service(service_uri, major_version, minor_version);
+	JausAddress own_addr = *(this->jausRouter->getJausAddress());
+	bool own_found = false;
 	mutex_.lock();
 	for (unsigned int i = 0; i < p_discover_services.size(); i++) {
 		if (p_discover_services[i].service == service
@@ -783,11 +801,27 @@ void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, int major_ve
 			return;
 		}
 	}
+	ROS_DEBUG_NAMED("DiscoveryClient", "added %s for subsystem: %d to discovery", service_uri.c_str(), subsystem);
 	DiscoverItem di;
 	di.service = service;
 	di.subsystem = subsystem;
+	// search in own services
+	unsigned short ssid = subsystem;
+	if (ssid == 65535) {
+		ssid = own_addr.getSubsystemID();
+	}
+	if (ssid == own_addr.getSubsystemID()) {
+		if ( std::find(p_own_uri_services.begin(), p_own_uri_services.end(), service) != p_own_uri_services.end() ) {
+			ROS_DEBUG_NAMED("DiscoveryClient", "	discovered own service %s", service_uri.c_str());
+			di.discovered_in.insert(ssid);
+			own_found = true;
+		}
+	}
 	p_discover_services.push_back(di);
 	mutex_.unlock();
+	if (own_found) {
+		pInformDiscoverCallbacks(service, own_addr);
+	}
 //	int query_type = TYPE_SUBSYSTEM;
 //	unsigned short subsystem_id = subsystem;
 //	QueryIdentification msg;
