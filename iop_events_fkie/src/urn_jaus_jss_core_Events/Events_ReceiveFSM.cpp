@@ -178,14 +178,15 @@ void Events_ReceiveFSM::updateEventAction(UpdateEvent msg, Receive::Body::Receiv
 {
 	JausAddress requestor = transportData.getAddress();
 	boost::shared_ptr<iop::InternalEvent> event = p_event_list.update_event(msg, requestor);
+	int event_id = (int)msg.getBody()->getUpdateEventRec()->getEventID();
 	if (event->is_valid()) {
 		// send confirm message
 		ConfirmEventRequest response;
 		response.getBody()->getConfirmEventRequestRec()->setRequestID(event->get_request_id());
 		response.getBody()->getConfirmEventRequestRec()->setEventID(event->get_event_id());
 		response.getBody()->getConfirmEventRequestRec()->setConfirmedPeriodicRate(event->get_event_rate());
-		ROS_DEBUG_NAMED("Events", "send confirm update event to %s, request id: %d, query msg id: %#x",
-				requestor.str().c_str(), event->get_request_id(), event->get_query_msg_id());
+		ROS_DEBUG_NAMED("Events", "send confirm update event %d to %s, request id: %d, query msg id: %#x",
+				event_id, requestor.str().c_str(), event->get_request_id(), event->get_query_msg_id());
 		sendJausMessage( response, requestor );
 	} else {
 		// send Reject message
@@ -197,8 +198,8 @@ void Events_ReceiveFSM::updateEventAction(UpdateEvent msg, Receive::Body::Receiv
 		if (!rmsg.empty()) {
 			rvent_rec->setErrorMessage(rmsg);
 		}
-		ROS_DEBUG_NAMED("Events", "send REJECT update event to %s, UpdateEvent: %d, rcode: %d, msg: %s",
-				requestor.str().c_str(), event->get_request_id(), event->get_error_code(), rmsg.c_str());
+		ROS_DEBUG_NAMED("Events", "send REJECT update event %d to %s, UpdateEvent: %d, rcode: %d, msg: %s",
+				event_id, requestor.str().c_str(), event->get_request_id(), event->get_error_code(), rmsg.c_str());
 		sendJausMessage( revent, requestor );
 	}
 }

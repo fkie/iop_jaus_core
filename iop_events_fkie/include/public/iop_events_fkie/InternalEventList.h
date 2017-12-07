@@ -105,7 +105,7 @@ protected:
 	std::vector<RegisteredReports> p_registered_reports;
 	std::map<jUnsignedByte, boost::shared_ptr<iop::InternalEvent> > p_events;  //event id, current active events
 
-	boost::shared_ptr<iop::InternalEvent> p_update_event(jUnsignedByte event_id, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage &query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate);
+	boost::shared_ptr<iop::InternalEvent> p_update_event(jUnsignedByte event_id, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate);
 	void p_timeout(const ros::TimerEvent& event);
 };
 

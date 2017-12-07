@@ -70,7 +70,7 @@ InternalEvent::InternalEvent(InternalEventList* event_list, jUnsignedByte reques
 	p_is_event_supported(query_msg_id, event_type, event_rate);
 }
 
-InternalEvent::InternalEvent(InternalEventList* event_list, jUnsignedByte event_id, jUnsignedByte request_id, jUnsignedShortInteger query_msg_id, jUnsignedByte event_type, double event_rate, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage *query_msg, JausAddress requestor)
+InternalEvent::InternalEvent(InternalEventList* event_list, jUnsignedByte event_id, jUnsignedByte request_id, jUnsignedShortInteger query_msg_id, jUnsignedByte event_type, double event_rate, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage query_msg, JausAddress requestor)
 //: InternalEvent(event_list, request_id, query_msg_id) warning: delegating constructors only available with -std=c++11 or -std=gnu++11
 {
 	p_event_list = event_list;
@@ -96,7 +96,7 @@ InternalEvent::InternalEvent(InternalEventList* event_list, jUnsignedByte event_
 		p_request_id = request_id;
 		p_last_update = ros::Time::now();
 		p_event_id = event_id;
-		p_query_msg = *query_msg;
+		p_query_msg = query_msg;
 		p_query_msg_id = query_msg_id;
 		this->requestor = requestor;
 		p_supports_on_change = p_event_list->supports_on_change(query_msg_id);
@@ -159,7 +159,7 @@ void InternalEvent::send_report(JTS::Message &report, unsigned short id)
 	}
 }
 
-void InternalEvent::update(jUnsignedByte event_id, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage &query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate)
+void InternalEvent::update(jUnsignedByte event_id, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate)
 {
 	if (p_event_id == event_id) {
 		p_last_update = ros::Time::now();
@@ -200,16 +200,16 @@ void InternalEvent::set_error(jUnsignedByte code, std::string msg)
 bool InternalEvent::p_is_event_supported(jUnsignedShortInteger query_msg_id, jUnsignedByte p_event_type, double p_event_rate)
 {
 	if (p_event_type == 0 && !p_event_list->supports_periodic(query_msg_id)) {
-		set_error(1);
+		set_error(1, "Periodic events not supported");
 		return false;
 	} else if (p_event_type == 1 && !p_event_list->supports_on_change(query_msg_id)) {
-		set_error(2);
+		set_error(2, "Change based events not supported");
 		return false;
 	} else if (p_event_type == 0 && !p_event_list->supports_rate(query_msg_id, p_event_rate)) {
 		set_error(4, "rate not supported");
 		return false;
 	} else if (!p_event_list->supports_message(query_msg_id)) {
-		set_error(5);
+		set_error(5, "Message not supported");
 		return false;
 	}
 	set_error(0);

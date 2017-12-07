@@ -46,7 +46,7 @@ public:
 	JausAddress requestor;
 	InternalEvent(InternalEventList* event_list);
 	InternalEvent(InternalEventList* event_list, jUnsignedByte request_id, jUnsignedShortInteger query_msg_id, jUnsignedByte event_type=0, double event_rate=0.0);
-	InternalEvent(InternalEventList* event_list, jUnsignedByte event_id, jUnsignedByte request_id, jUnsignedShortInteger query_msg_id, jUnsignedByte event_type, double event_rate, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage *query_msg, JausAddress requestor);
+	InternalEvent(InternalEventList* event_list, jUnsignedByte event_id, jUnsignedByte request_id, jUnsignedShortInteger query_msg_id, jUnsignedByte event_type, double event_rate, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage query_msg, JausAddress requestor);
 	~InternalEvent();
 	bool operator==(InternalEvent &value);
 	bool operator!=(InternalEvent &value);
@@ -55,7 +55,7 @@ public:
 	jUnsignedByte get_event_id() { return p_event_id; }
 	/** event_type: 0: Periodic, 1: every change **/
 	jUnsignedByte get_event_type() { return p_event_type; }
-	jUnsignedByte get_event_rate() { return p_event_rate; }
+	double get_event_rate() { return p_event_rate; }
 	jUnsignedShortInteger get_query_msg_id() { return p_query_msg_id; }
 	urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage& get_query_msg() { return p_query_msg; }
 
@@ -65,7 +65,7 @@ public:
 	urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage &get_query();
 	/** If you use filter setted by query message, use send_report() to send filtered reports. */
 	void send_report(JTS::Message &report, unsigned short id=0);
-	void update(jUnsignedByte event_id, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage &query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate);
+	void update(jUnsignedByte event_id, urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate);
 
 	/** Returns true if it was initialized. */
 	bool is_valid() { return p_initialized; }

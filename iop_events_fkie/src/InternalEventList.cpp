@@ -240,8 +240,10 @@ boost::shared_ptr<iop::InternalEvent> InternalEventList::create_event(CreateEven
 			ROS_DEBUG_NAMED("Events", "create event for query_id: %#x, request_id: %d, event type: %s, rate: %f, sender %s -> new event id: %d",
 					query_msg_id, request_id, (event_type == 0) ? "Periodic" : "Every change", event_rate, requestor.str().c_str(), (int)event_id);
 			CreateEvent::Body::CreateEventRec::QueryMessage *query_msg = erec->getQueryMessage();
-			boost::shared_ptr<iop::InternalEvent> event(boost::make_shared<iop::InternalEvent>(this, event_id, request_id, query_msg_id, event_type, event_rate, query_msg, requestor));
-			p_events[event_id] = event;
+			boost::shared_ptr<iop::InternalEvent> event(boost::make_shared<iop::InternalEvent>(this, event_id, request_id, query_msg_id, event_type, event_rate, *query_msg, requestor));
+			if (event->get_error_code() == 0) {
+				p_events[event_id] = event;
+			}
 			return event;
 //
 //			p_events.insert(std::map<jUnsignedByte, boost::shared_ptr<iop::InternalEvent> >::value_type(event_id, boost::make_shared<iop::InternalEvent>(*this, event_id, request_id, query_msg_id, event_type, event_rate, *query_msg, requestor)));
@@ -272,25 +274,27 @@ boost::shared_ptr<iop::InternalEvent> InternalEventList::update_event(UpdateEven
 	return p_update_event(event_id, query_msg, query_msg_id, requestor, request_id, event_type, event_rate);
 }
 
-boost::shared_ptr<iop::InternalEvent> InternalEventList::p_update_event(jUnsignedByte event_id, CreateEvent::Body::CreateEventRec::QueryMessage &query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate)
+boost::shared_ptr<iop::InternalEvent> InternalEventList::p_update_event(jUnsignedByte event_id, CreateEvent::Body::CreateEventRec::QueryMessage query_msg, jUnsignedShortInteger query_msg_id, JausAddress requestor, jUnsignedByte request_id, jUnsignedByte event_type, double event_rate)
 {
 	lock_type lock(p_mutex);
 	std::map<jUnsignedByte, boost::shared_ptr<iop::InternalEvent> >::iterator it;
 	for (it = p_events.begin(); it != p_events.end(); ++it) {
 		if (it->first == event_id) {
-			ROS_DEBUG_NAMED("Events", "event %d event with query_id: %#x, request_id: %d, event type: %s, rate: %f, sender %s",
+			ROS_DEBUG_NAMED("Events", "update event %d with query_id: %#x, request_id: %d, event type: %s, rate: %f, sender %s",
 					(int)event_id, query_msg_id, request_id, (event_type == 0) ? "Periodic" : "Every change", event_rate, requestor.str().c_str());
 			boost::shared_ptr<iop::InternalEvent> test_event(boost::make_shared<iop::InternalEvent>(this, request_id, query_msg_id, event_type, event_rate));
 			if (test_event->get_error_code() == 0) {
 				it->second->update(event_id, query_msg, query_msg_id, requestor, request_id, event_type, event_rate);
 				return it->second;
 			} else {
+				ROS_DEBUG_NAMED("Events", "update event %d failed: error %d: %s",
+						(int)event_id, (int)test_event->get_error_code(), test_event->get_error_msg().c_str());
 				return test_event;
 			}
 		}
 	}
 	boost::shared_ptr<iop::InternalEvent> event(boost::make_shared<iop::InternalEvent>(this, request_id, query_msg_id, event_type, event_rate));
-	event->set_error(6, "");
+	event->set_error(6, "Invalid event ID for update event request");
 	return event;
 
 }
