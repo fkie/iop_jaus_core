@@ -76,9 +76,9 @@ void ManagementClient_ReceiveFSM::setupNotifications()
 	iop::Config cfg("~ManagementClient");
 	cfg.param("hz", p_hz, p_hz, false, false);
 	cfg.param("by_query", by_query, by_query, true, true);
-	p_pub_status = cfg.advertise<std_msgs::String>("mgmt_status", 5);
-	p_sub_cmd_emergency = cfg.subscribe<std_msgs::Bool>("mgmt_emergency", 5, &ManagementClient_ReceiveFSM::pRosEmergency, this);
-	p_sub_cmd_ready = cfg.subscribe<std_msgs::Bool>("mgmt_reset", 5, &ManagementClient_ReceiveFSM::pRosReady, this);
+	p_pub_status = cfg.advertise<std_msgs::String>("mgmt_status", 5, true);
+	p_sub_cmd_emergency = cfg.subscribe<std_msgs::Bool>("cmd_mgmt_emergency", 5, &ManagementClient_ReceiveFSM::pRosEmergency, this);
+	p_sub_cmd_ready = cfg.subscribe<std_msgs::Bool>("cmd_mgmt_reset", 5, &ManagementClient_ReceiveFSM::pRosReady, this);
 }
 
 void ManagementClient_ReceiveFSM::reportStatusAction(ReportStatus msg, Receive::Body::ReceiveRec transportData)

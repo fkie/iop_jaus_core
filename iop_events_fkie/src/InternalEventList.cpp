@@ -243,6 +243,7 @@ boost::shared_ptr<iop::InternalEvent> InternalEventList::create_event(CreateEven
 			boost::shared_ptr<iop::InternalEvent> event(boost::make_shared<iop::InternalEvent>(this, event_id, request_id, query_msg_id, event_type, event_rate, *query_msg, requestor));
 			if (event->get_error_code() == 0) {
 				p_events[event_id] = event;
+				event->new_report_available(get_report(query_msg_id));
 			}
 			return event;
 //

@@ -152,6 +152,7 @@ void AccessControl_ReceiveFSM::sendRejectControlAction(ReleaseControl msg, std::
 		}
 	} else if (arg0 == "NOT_AVAILABLE") {
 		ROS_DEBUG_NAMED("AccessControl", "  access control not available");
+		pPublishControlState(false);
 		reject_msg.getBody()->getRejectControlRec()->setResponseCode(1);
 	} else {
 		ROS_WARN_NAMED("AccessControl", "sendRejectControlAction unknown code: %s", arg0.c_str());
@@ -175,6 +176,7 @@ void AccessControl_ReceiveFSM::sendRejectControlToControllerAction(std::string a
 			reject_msg.getBody()->getRejectControlRec()->setResponseCode(0);
 		} else if (arg0 == "NOT_AVAILABLE") {
 			ROS_DEBUG_NAMED("AccessControl", "  access control not available in e.g. emergency");
+			pPublishControlState(false);
 			reject_msg.getBody()->getRejectControlRec()->setResponseCode(1);
 		} else {
 			ROS_WARN_NAMED("AccessControl", "sendRejectControlToControllerAction unknown code: %s", arg0.c_str());

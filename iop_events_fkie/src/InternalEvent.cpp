@@ -220,7 +220,7 @@ void InternalEvent::p_send_as_event(JTS::Message &report, JausAddress &address)
 {
 	jUnsignedInteger len = report.getSize();
 	if (len > 65536) {
-		 ROS_WARN_NAMED("Events", "large message detected, size: %d", len);
+		ROS_WARN_NAMED("Events", "large message detected, size: %d", len);
 	}
 	unsigned char bytes[len];
 	report.encode(bytes);
