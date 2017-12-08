@@ -44,11 +44,14 @@ along with this program; or you can read the full license at
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
+#include <iop_events_fkie/EventHandlerInterface.h>
 
 namespace urn_jaus_jss_core_ManagementClient
 {
 
-class DllExport ManagementClient_ReceiveFSM : public JTS::StateMachine
+class DllExport ManagementClient_ReceiveFSM : public JTS::StateMachine, public iop::EventHandlerInterface
 {
 public:
 	static unsigned char MANAGEMENT_STATE_INIT;
@@ -70,6 +73,8 @@ public:
 
 
 	/// Guard Methods
+	/// EventHandlerInterface Methods
+	void event(JausAddress reporter, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata);
 
 	/// user methods
 	template<class T>
@@ -78,6 +83,7 @@ public:
 	}
 	void queryStatus(JausAddress address);
 	void resume(JausAddress address);
+	void set_current_client(JausAddress client);
 
 	ManagementClient_ReceiveFSMContext *context;
 
@@ -90,8 +96,20 @@ protected:
 
 	boost::function<void (JausAddress &, unsigned char code)> p_class_interface_callback;
 
+	QueryStatus p_query_status;
+	JausAddress p_current_client;
 	unsigned char p_status;
+	ros::NodeHandle p_nh;
+	ros::Timer p_query_timer;
+	double p_hz;
+	bool by_query;
+	ros::Subscriber p_sub_cmd_emergency;
+	ros::Subscriber p_sub_cmd_ready;
+	ros::Publisher p_pub_status;
 	std::string p_status_to_str(unsigned char status);
+	void pRosEmergency(const std_msgs::Bool::ConstPtr& state);
+	void pRosReady(const std_msgs::Bool::ConstPtr& state);
+	void pQueryCallback(const ros::TimerEvent& event);
 };
 
 };

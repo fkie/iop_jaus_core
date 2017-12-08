@@ -66,29 +66,23 @@ public:
 	/// Action Methods
 	virtual void deleteIDAction(Receive::Body::ReceiveRec transportData);
 	virtual void emergencyAction();
+	virtual void failureAction();
 	virtual void goReadyAction();
 	virtual void goStandbyAction();
 	virtual void initializeAction();
 	virtual void readyAction();
-	virtual void resetEmergency2Action();
+	virtual void resetAction();
 	virtual void resetEmergencyAction();
-	virtual void resetReadyAction();
-//	virtual void resetTimerAction();
-	virtual void sendConfirmControlAction(RequestControl msg, std::string arg0, Receive::Body::ReceiveRec transportData);
-	virtual void sendRejectControlAction(ReleaseControl msg, std::string arg0, Receive::Body::ReceiveRec transportData);
-	virtual void sendRejectControlAction(Reset msg, std::string arg0, Receive::Body::ReceiveRec transportData);
-	virtual void sendRejectControlAction(Shutdown msg, std::string arg0, Receive::Body::ReceiveRec transportData);
 	virtual void sendRejectControlToControllerAction(std::string arg0);
 	virtual void sendReportStatusAction(QueryStatus msg, Receive::Body::ReceiveRec transportData);
 	virtual void shutdownAction();
 	virtual void standbyAction();
 	virtual void storeIDAction(Receive::Body::ReceiveRec transportData);
-	virtual void popWrapper_969061f59e4133739162ff20066e48e8(ClearEmergency msg, Receive::Body::ReceiveRec transportData);
-	virtual void popWrapper_7380ba82ef323169a2dfdd5168317610(ClearEmergency msg, Receive::Body::ReceiveRec transportData);
 
 
-        /// Guard Methods
+	/// Guard Methods
 	virtual bool isControllingClient(Receive::Body::ReceiveRec transportData);
+	virtual bool isEmergencyCleared();
 	virtual bool isIDStored(Receive::Body::ReceiveRec transportData);
 
 
@@ -102,10 +96,11 @@ protected:
 	urn_jaus_jss_core_Events::Events_ReceiveFSM* pEvents_ReceiveFSM;
 	urn_jaus_jss_core_AccessControl::AccessControl_ReceiveFSM* pAccessControl_ReceiveFSM;
 
-	std::vector<JausAddress> p_emergency_clients;
+	ReportStatus p_report_status;
 	ros::Publisher p_pub_emergency;
 	ros::Publisher p_pub_ready;
-	int getStateID();
+	jUnsignedByte p_state;
+	void pSetState(jUnsignedByte state);
 };
 
 };

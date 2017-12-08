@@ -73,19 +73,23 @@ public:
 	virtual bool isControllingClient(Receive::Body::ReceiveRec transportData);
 	virtual bool isCurrentAuthorityLess(RequestControl msg);
 	virtual bool isDefaultAuthorityGreater(RequestControl msg);
+	virtual bool isEmergencyClient(Receive::Body::ReceiveRec transportData);
 
 
+	void store_emergency_address(JausAddress address);
+	void delete_emergency_address(JausAddress address);
+	bool has_emergency_address(JausAddress address);
 	void timeout(void* arg);
 
 	AccessControl_ReceiveFSMContext *context;
 
 protected:
 	DeVivo::Junior::JrTimer *p_timer;
-	JausAddress *p_current_controller;
+	JausAddress p_current_controller;
 	jUnsignedByte p_current_authority;
 	jUnsignedByte p_default_authority;
 	int p_default_timeout;
-	bool p_control_available;
+	std::set<unsigned int> p_emergency_address;
 	ros::Publisher p_is_controlled_publisher;
     /// References to parent FSMs
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;

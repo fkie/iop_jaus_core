@@ -44,10 +44,12 @@ Management_ReceiveFSM::Management_ReceiveFSM(urn_jaus_jss_core_Transport::Transp
 	 * statemachine needs them.
 	 */
 	context = new Management_ReceiveFSMContext(*this);
+//	context->setDebugFlag(true);
 
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEvents_ReceiveFSM = pEvents_ReceiveFSM;
 	this->pAccessControl_ReceiveFSM = pAccessControl_ReceiveFSM;
+	p_state = 0;
 }
 
 
@@ -72,35 +74,45 @@ void Management_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready_NotControlled", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready_NotControlled", "Management_ReceiveFSM");
 	registerNotification("Receiving_Ready_Controlled_Standby", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready_Controlled", "Management_ReceiveFSM");
 	registerNotification("Receiving_Ready_Controlled_Ready", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready_Controlled", "Management_ReceiveFSM");
+	registerNotification("Receiving_Ready_Controlled_Failure", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready_Controlled", "Management_ReceiveFSM");
 	registerNotification("Receiving_Ready_Controlled_Emergency", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready_Controlled", "Management_ReceiveFSM");
 	registerNotification("Receiving_Ready_Controlled", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready_Controlled", "Management_ReceiveFSM");
 	registerNotification("Receiving_Ready", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving_Ready", "Management_ReceiveFSM");
 	registerNotification("Receiving", pAccessControl_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControl_ReceiveFSM_Receiving", "Management_ReceiveFSM");
 
-	iop::Config cfg("~AccessControl");
+	iop::Config cfg("~Management");
 	p_pub_emergency = cfg.advertise<std_msgs::Bool>("is_emergency", 5, true);
 	p_pub_ready = cfg.advertise<std_msgs::Bool>("is_ready", 5, true);
+	pEvents_ReceiveFSM->get_event_handler().register_query(QueryStatus::ID);
+	std_msgs::Bool rosmsg;
+	rosmsg.data = false;
+	p_pub_emergency.publish(rosmsg);
+	p_pub_ready.publish(rosmsg);
 }
 
 void Management_ReceiveFSM::deleteIDAction(Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-  for (unsigned int i = 0; i < p_emergency_clients.size(); i++) {
-    if (p_emergency_clients[i].getSubsystemID() == transportData.getSourceID()->getSubsystemID()
-        && p_emergency_clients[i].getNodeID() == transportData.getSourceID()->getNodeID()
-        && p_emergency_clients[i].getComponentID() == transportData.getSourceID()->getComponentID()) {
-      p_emergency_clients.erase(p_emergency_clients.begin()+i);
-      break;
-    }
-  }
+	JausAddress emergency_client = transportData.getAddress();
+	ROS_DEBUG_NAMED("Management", "reset emergency -> delete ID %s", emergency_client.str().c_str());
+	pAccessControl_ReceiveFSM->delete_emergency_address(emergency_client);
+	if (pAccessControl_ReceiveFSM->isControlAvailable() && p_state == STATE_EMERGENCY) {
+		ROS_DEBUG_NAMED("Management", "reset emergency -> change into initialized state");
+		ieHandler->invoke(new Released());
+	} else if (p_state == STATE_EMERGENCY) {
+		ROS_DEBUG_NAMED("Management", "reset emergency -> there are further clients which holds emergency");
+	}
 }
 
 void Management_ReceiveFSM::emergencyAction()
 {
 	ROS_DEBUG_NAMED("Management", "emergencyAction");
-	std_msgs::Bool rosmsg;
-	rosmsg.data = true;
-	p_pub_emergency.publish(rosmsg);
+	pSetState(STATE_EMERGENCY);
+}
+
+void Management_ReceiveFSM::failureAction()
+{
+	ROS_DEBUG_NAMED("Management", "failureAction");
+	pSetState(STATE_FAILURE);
 }
 
 void Management_ReceiveFSM::goReadyAction()
@@ -120,204 +132,64 @@ void Management_ReceiveFSM::initializeAction()
 {
 	/// Insert User Code HERE
 	ROS_DEBUG_NAMED("Management", "initializeAction");
+	pSetState(STATE_INITIALIZE);
 	ieHandler->invoke(new Initialized());
 }
 
 void Management_ReceiveFSM::readyAction()
 {
 	ROS_DEBUG_NAMED("Management", "readyAction");
-	std_msgs::Bool rosmsg;
-	rosmsg.data = true;
-	p_pub_ready.publish(rosmsg);
+	pSetState(STATE_READY);
 }
 
-void Management_ReceiveFSM::resetEmergency2Action()
+void Management_ReceiveFSM::resetAction()
 {
-	ROS_DEBUG_NAMED("Management", "resetEmergency2Action");
-	std_msgs::Bool rosmsg;
-	rosmsg.data = false;
-	p_pub_emergency.publish(rosmsg);
+	ROS_DEBUG_NAMED("Management", "resetAction");
+	pSetState(STATE_INITIALIZE);
 }
 
 void Management_ReceiveFSM::resetEmergencyAction()
 {
 	ROS_DEBUG_NAMED("Management", "resetEmergencyAction");
-	std_msgs::Bool rosmsg;
-	rosmsg.data = false;
-	p_pub_emergency.publish(rosmsg);
-}
-
-void Management_ReceiveFSM::resetReadyAction()
-{
-	ROS_DEBUG_NAMED("Management", "resetReadyAction");
-	std_msgs::Bool rosmsg;
-	rosmsg.data = false;
-	p_pub_ready.publish(rosmsg);
-}
-//void Management_ReceiveFSM::resetTimerAction()
-//{
-//	/// Insert User Code HERE
-//  pAccessControl_ReceiveFSM->resetTimerAction();
-//}
-//
-void Management_ReceiveFSM::sendConfirmControlAction(RequestControl msg, std::string arg0, Receive::Body::ReceiveRec transportData)
-{
-	/// Insert User Code HERE
-	pAccessControl_ReceiveFSM->sendConfirmControlAction(*dynamic_cast<urn_jaus_jss_core_AccessControl::RequestControl*>(&msg), arg0, transportData);
-}
-
-void Management_ReceiveFSM::sendRejectControlAction(ReleaseControl msg, std::string arg0, Receive::Body::ReceiveRec transportData)
-{
-	/// Insert User Code HERE
-	pAccessControl_ReceiveFSM->sendRejectControlAction(*dynamic_cast<urn_jaus_jss_core_AccessControl::ReleaseControl*>(&msg), arg0, transportData);
-}
-
-void Management_ReceiveFSM::sendRejectControlAction(Reset msg, std::string arg0, Receive::Body::ReceiveRec transportData)
-{
-	pAccessControl_ReceiveFSM->sendRejectControlToControllerAction(arg0);
-}
-
-void Management_ReceiveFSM::sendRejectControlAction(Shutdown msg, std::string arg0, Receive::Body::ReceiveRec transportData)
-{
-	pAccessControl_ReceiveFSM->sendRejectControlToControllerAction(arg0);
+	if (!pAccessControl_ReceiveFSM->isControlAvailable()) {
+		ROS_DEBUG_NAMED("Management", "can reset emergency if not all client accepted!");
+		throw std::logic_error("can reset emergency if not all client accepted");
+	}
+	pSetState(STATE_INITIALIZE);
 }
 
 void Management_ReceiveFSM::sendRejectControlToControllerAction(std::string arg0)
 {
-	/// Insert User Code HERE
 	ROS_DEBUG_NAMED("Management", "sendRejectControlToControllerAction: %s", arg0.c_str());
 	pAccessControl_ReceiveFSM->sendRejectControlToControllerAction(arg0);
 }
 
 void Management_ReceiveFSM::sendReportStatusAction(QueryStatus msg, Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-	uint16_t subsystem_id = transportData.getSourceID()->getSubsystemID();
-	uint8_t node_id = transportData.getSourceID()->getNodeID();
-	uint8_t component_id = transportData.getSourceID()->getComponentID();
-	JausAddress sender(subsystem_id, node_id, component_id);
-	ReportStatus response;
-	jUnsignedByte status = getStateID();
-	ROS_DEBUG_NAMED("Management", "Send ReportStatus (%d) to %d.%d.%d", status, subsystem_id, node_id, component_id);
-	response.getBody()->getReportStatusRec()->setStatus(status);
-	sendJausMessage(response, sender);
+	JausAddress sender = transportData.getAddress();
+	ROS_DEBUG_NAMED("Management", "Send ReportStatus (%d) to %s", (int)p_state, sender.str().c_str());
+	sendJausMessage(p_report_status, sender);
 }
 
 void Management_ReceiveFSM::shutdownAction()
 {
 	ROS_DEBUG_NAMED("Management", "SHUTDOWN");
+	pSetState(STATE_SHUTDOWN);
 }
 
 void Management_ReceiveFSM::standbyAction()
 {
 	ROS_DEBUG_NAMED("Management", "standbyAction");
+	pSetState(STATE_STANDBY);
 }
 
 void Management_ReceiveFSM::storeIDAction(Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-	if (!isIDStored(transportData)) {
-		uint16_t subsystem_id = transportData.getSourceID()->getSubsystemID();
-		uint8_t node_id = transportData.getSourceID()->getNodeID();
-		uint8_t component_id = transportData.getSourceID()->getComponentID();
-		ROS_DEBUG_NAMED("Management", "Store ID %d.%d.%d", subsystem_id, node_id, component_id);
-		JausAddress emergency_client(subsystem_id, node_id, component_id);
-		p_emergency_clients.push_back(emergency_client);
+	JausAddress emergency_client = transportData.getAddress();
+	if (!pAccessControl_ReceiveFSM->has_emergency_address(emergency_client)) {
+		ROS_DEBUG_NAMED("Management", "emergency -> store ID %s", emergency_client.str().c_str());
+		pAccessControl_ReceiveFSM->store_emergency_address(emergency_client);
 	}
-
-}
-
-void Management_ReceiveFSM::popWrapper_969061f59e4133739162ff20066e48e8(ClearEmergency msg, Receive::Body::ReceiveRec transportData)
-{
-	std::string tempstr("Receiving_Ready_NotControlled_Emergency");
-	std::string tempstr2(context->peakTopStateStack());
-	char *leafStateTOK = strtok(const_cast<char*>(tempstr.c_str()),"_");
-	char *stackStateTOK = strtok(const_cast<char*>(tempstr2.c_str()),"_");
-
-	if(strcmp(const_cast<char*>(tempstr2.c_str()),"Receiving_Ready_NotControlled_Emergency") == 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
-
-}
-
-void Management_ReceiveFSM::popWrapper_7380ba82ef323169a2dfdd5168317610(ClearEmergency msg, Receive::Body::ReceiveRec transportData)
-{
-	std::string tempstr("Receiving_Ready_Controlled_Emergency");
-	std::string tempstr2(context->peakTopStateStack());
-	char *leafStateTOK = strtok(const_cast<char*>(tempstr.c_str()),"_");
-	char *stackStateTOK = strtok(const_cast<char*>(tempstr2.c_str()),"_");
-
-	if(strcmp(const_cast<char*>(tempstr2.c_str()),"Receiving_Ready_Controlled_Emergency") == 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
-
-	if(strcmp(leafStateTOK,stackStateTOK) != 0)
-	{
-		deleteIDAction(transportData);
-		return;
-	}
-	leafStateTOK = strtok(leafStateTOK+1,"_");
-	stackStateTOK = strtok(stackStateTOK+1,"_");
 
 }
 
@@ -327,42 +199,41 @@ bool Management_ReceiveFSM::isControllingClient(Receive::Body::ReceiveRec transp
 	//// This can be replaced or modified as needed.
 	return pAccessControl_ReceiveFSM->isControllingClient(transportData );
 }
+
+bool Management_ReceiveFSM::isEmergencyCleared()
+{
+	return pAccessControl_ReceiveFSM->isControlAvailable();
+}
+
 bool Management_ReceiveFSM::isIDStored(Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-	for (unsigned int i = 0; i < p_emergency_clients.size(); i++) {
-		if (p_emergency_clients[i].getSubsystemID() == transportData.getSourceID()->getSubsystemID()
-			&& p_emergency_clients[i].getNodeID() == transportData.getSourceID()->getNodeID()
-			&& p_emergency_clients[i].getComponentID() == transportData.getSourceID()->getComponentID()) {
-			return true;
-		}
-	}
-	return false;
+	return pAccessControl_ReceiveFSM->has_emergency_address(transportData.getAddress());
 }
 
-int Management_ReceiveFSM::getStateID()
+void Management_ReceiveFSM::pSetState(jUnsignedByte state)
 {
-	// Get the state from the context.  Note that since we are inside a transition, the "current state"
-	// is ill-defined.  We instead use the state we left to execute this transition.  Recall that the state
-	// is actually an amalgamation of all parent states, we're only concerned with the management
-	int result = 0;
-	std::string state_name(context->getState().getName());
-	if (state_name.find("_") != std::string::npos)
-		state_name = state_name.substr(state_name.find_last_of("_")+1);
-	if (state_name == "Init")
-		result = 0;
-	if (state_name == "Ready")
-		result = 1;
-	if (state_name == "Standby")
-		result = 2;
-	if (state_name == "Shutdown")
-		result = 3;
-	if (state_name == "Failure")
-		result = 4;
-	if (state_name == "Emergency")
-		result = 5;
-	return result;
+	if (state != p_state) {
+		if (p_state == STATE_EMERGENCY) {
+			std_msgs::Bool rosmsg;
+			rosmsg.data = false;
+			p_pub_emergency.publish(rosmsg);
+		} else if (state == STATE_EMERGENCY) {
+			std_msgs::Bool rosmsg;
+			rosmsg.data = true;
+			p_pub_emergency.publish(rosmsg);
+		} else if (p_state == STATE_READY) {
+			std_msgs::Bool rosmsg;
+			rosmsg.data = false;
+			p_pub_ready.publish(rosmsg);
+		} else if (state == STATE_READY) {
+			std_msgs::Bool rosmsg;
+			rosmsg.data = true;
+			p_pub_ready.publish(rosmsg);
+		}
+		p_state = state;
+		p_report_status.getBody()->getReportStatusRec()->setStatus(p_state);
+		pEvents_ReceiveFSM->get_event_handler().set_report(QueryStatus::ID, &p_report_status);
+	}
 }
-
 
 };
