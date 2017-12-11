@@ -91,7 +91,7 @@ bool InternalEventList::set_report(jUnsignedShortInteger query_msg_id, JTS::Mess
 			return true;
 		}
 	}
-	ROS_WARN_NAMED("Events", "set report for an unregistered query id %d failed", query_msg_id);
+	ROS_WARN_NAMED("Events", "set report for an unregistered query id %#x failed", query_msg_id);
 	return false;
 }
 
