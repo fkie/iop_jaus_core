@@ -66,7 +66,7 @@ void ListManager_ReceiveFSM::setupNotifications()
 	pManagement_ReceiveFSM->registerNotification("Receiving_Ready_NotControlled", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_NotControlled_Standby", "Management_ReceiveFSM");
 	pManagement_ReceiveFSM->registerNotification("Receiving_Ready_Controlled_Standby", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_Controlled_Standby", "Management_ReceiveFSM");
 	pManagement_ReceiveFSM->registerNotification("Receiving_Ready_Controlled_Ready", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_Controlled_Ready", "Management_ReceiveFSM");
-	pManagement_ReceiveFSM->registerNotification("Receiving_Ready_Controlled_Emergency", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_Controlled_Emergency", "Management_ReceiveFSM");
+	pManagement_ReceiveFSM->registerNotification("Receiving_Ready_Controlled_Failure", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_Controlled_Failure", "Management_ReceiveFSM");
 	pManagement_ReceiveFSM->registerNotification("Receiving_Ready_Controlled", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_Controlled_Standby", "Management_ReceiveFSM");
 	pManagement_ReceiveFSM->registerNotification("Receiving_Ready", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_NotControlled_Standby", "Management_ReceiveFSM");
 	pManagement_ReceiveFSM->registerNotification("Receiving", ieHandler, "InternalStateChange_To_ListManager_ReceiveFSM_Receiving_Ready_NotControlled_Standby", "Management_ReceiveFSM");
@@ -78,7 +78,7 @@ void ListManager_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready_NotControlled", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving_Ready_NotControlled", "ListManager_ReceiveFSM");
 	registerNotification("Receiving_Ready_Controlled_Standby", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving_Ready_Controlled_Standby", "ListManager_ReceiveFSM");
 	registerNotification("Receiving_Ready_Controlled_Ready", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving_Ready_Controlled_Ready", "ListManager_ReceiveFSM");
-	registerNotification("Receiving_Ready_Controlled_Emergency", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving_Ready_Controlled_Emergency", "ListManager_ReceiveFSM");
+	registerNotification("Receiving_Ready_Controlled_Failure", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving_Ready_Controlled_Failure", "ListManager_ReceiveFSM");
 	registerNotification("Receiving_Ready_Controlled", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving_Ready_Controlled", "ListManager_ReceiveFSM");
 	registerNotification("Receiving_Ready", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving_Ready", "ListManager_ReceiveFSM");
 	registerNotification("Receiving", pManagement_ReceiveFSM->getHandler(), "InternalStateChange_To_Management_ReceiveFSM_Receiving", "ListManager_ReceiveFSM");

@@ -8,7 +8,10 @@ find_package(catkin REQUIRED COMPONENTS
              iop_management_fkie
              roscpp)
 iop_init(COMPONENT_ID 0)
-iop_export_service(urn_jaus_jss_core_ListManager)
+iop_export_service(
+        urn_jaus_jss_core_ListManager
+        urn_jaus_jss_core_ListManagerClient
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -28,19 +31,28 @@ catkin_package(
 iop_code_generator(
   IDLS
     urn.jaus.jss.core-v1.1/AccessControl.xml
+    urn.jaus.jss.core-v1.1/AccessControlClient.xml
     urn.jaus.jss.core-v1.1/Events.xml
+    urn.jaus.jss.core-v1.1/EventsClient.xml
     urn.jaus.jss.core-v1.1/Management.xml
+    urn.jaus.jss.core-v1.1/ManagementClient.xml
     urn.jaus.jss.core-v1.1/Transport.xml
     urn.jaus.jss.core-v1.1/ListManager.xml
+    urn.jaus.jss.core-v1.1/ListManagerClient.xml
   OWN_IDLS
   OVERRIDES
     include/urn_jaus_jss_core_ListManager/ListManager_ReceiveFSM.h
+    include/urn_jaus_jss_core_ListManagerClient/ListManagerClient_ReceiveFSM.h
     src/urn_jaus_jss_core_ListManager/ListManager_ReceiveFSM.cpp
+    src/urn_jaus_jss_core_ListManagerClient/ListManagerClient_ReceiveFSM.cpp
     src/main.cpp
   EXTERN_SERVICES
     urn_jaus_jss_core_AccessControl
+    urn_jaus_jss_core_AccessControlClient
     urn_jaus_jss_core_Events
+    urn_jaus_jss_core_EventsClient
     urn_jaus_jss_core_Management
+    urn_jaus_jss_core_ManagementClient
     urn_jaus_jss_core_Transport
   GENERATED_SOURCES cppfiles
 )
@@ -53,6 +65,7 @@ add_library(${PROJECT_NAME}
             src/InternalElement.cpp
             src/InternalElementList.cpp
             src/ListManagerPlugin.cpp
+            src/ListManagerClientPlugin.cpp
             ${cppfiles}
 )
 

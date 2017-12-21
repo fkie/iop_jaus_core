@@ -7,4 +7,12 @@
       <inherits_from id="urn:jaus:jss:core:Management" min_version="1.1"/>
     </iop_service>
   </class>
+  <class name="ListManagerClient" type="iop::ListManagerClientPlugin" base_class_type="iop::PluginInterface">
+    <description>
+      ListManagerClient Service for OCU.
+    </description>
+    <iop_service name="ListManagerClient" id="urn:jaus:jss:core:ListManagerClient" version="1.1">
+      <inherits_from id="urn:jaus:jss:core:ManagementClient" min_version="1.1"/>
+    </iop_service>
+  </class>
 </library>

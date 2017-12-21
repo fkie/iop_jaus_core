@@ -54,7 +54,8 @@ public:
 	void set_current_element(jUnsignedShortInteger uid);
 	/** The executed service should inform the list if the execution of all his elements is finished.
 	 * In this case the list checks if further elements are in the list. Then
-	 * the list inform the service about further elements to execute.*/
+	 * the list inform the service about further elements to execute.
+	 * Returns false, if no further elements available. */
 	bool finished(jUnsignedShortInteger uid, bool execute_next = true);
 
 	/** ========= methods to manage elements ======= **/

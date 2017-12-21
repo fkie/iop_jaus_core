@@ -132,10 +132,13 @@ bool InternalElementList::finished(jUnsignedShortInteger uid, bool execute_next)
 		return false;
 	}
 	if (execute_next && el.get_uid_next() != 0) {
-		execute_list(el.get_uid_next());
+		if (!execute_list(el.get_uid_next())) {
+			return false;
+		}
 		p_current_element = el.get_uid_next();
 	} else {
 		p_current_element = 0;
+		return false;
 	}
 	return true;
 }
@@ -222,17 +225,20 @@ bool InternalElementList::set_element(SetElement msg)
 			} else {
 				// find the position of the previous UID
 				std::deque<iop::InternalElement>::iterator it;
+				bool found = false;
 				for (it = p_element_list.begin(); it != p_element_list.end(); it++) {
 					if (elrec->getPreviousUID() == 65535) {
 						if (it->get_uid() == elrec->getNextUID()) {
+							found = true;
 							break;
 						}
 					} else if (it->get_uid() == elrec->getPreviousUID()) {
+						found = true;
 						it++;
 						break;
 					}
 				}
-				if (it != p_element_list.end()) {
+				if (found) {
 					p_element_list.insert(it, ie);
 				} else {
 					set_error(3, "invalid previous or next UID of element at index " + boost::lexical_cast<std::string>(i));
@@ -372,6 +378,10 @@ bool InternalElementList::isValidElementRequest(SetElement msg)
 	reset_erros();
 	SetElement::Body::SetElementSeq::ElementList* ellist = msg.getBody()->getSetElementSeq()->getElementList();
 	std::set<jUnsignedShortInteger> new_element_ids;
+	if (ellist->getNumberOfElements() == 0) {
+		set_error(5, "no element found");
+		return false;
+	}
 	for (unsigned int i = 0; i < ellist->getNumberOfElements(); ++i) {
 		SetElement::Body::SetElementSeq::ElementList::ElementRec *elrec = ellist->getElement(i);
 		if (elrec->getElementUID() == 0 || elrec->getElementUID() == 65535) {
@@ -387,6 +397,10 @@ bool InternalElementList::isValidElementRequest(SetElement msg)
 				}
 			}
 		}
+	}
+	// test for next uid
+	for (unsigned int i = 0; i < ellist->getNumberOfElements(); ++i) {
+		SetElement::Body::SetElementSeq::ElementList::ElementRec *elrec = ellist->getElement(i);
 		if (elrec->getNextUID() != 0 && elrec->getNextUID() != 65535) {
 			if (new_element_ids.find(elrec->getNextUID()) == new_element_ids.end()) {
 				if (!elementExists(elrec->getNextUID())) {
