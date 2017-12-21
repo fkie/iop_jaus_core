@@ -97,9 +97,14 @@ void ManagementClient_ReceiveFSM::reportStatusAction(ReportStatus msg, Receive::
 		//      p_do_resume = false;
 		//      queryStatus(sender);
 		//    }
-		if (!p_class_interface_callback.empty()) {
+		if (!p_class_interface_callback.empty() && p_current_client == sender) {
 			ROS_DEBUG_NAMED("ManagementClient", "  forward management state to handler");
 			p_class_interface_callback(sender, p_status);
+		}
+		if (p_status == 2 && p_current_client == sender) {
+			if (pAccessControlClient_ReceiveFSM->hasAccess(p_current_client )) {
+				resume(p_current_client);
+			}
 		}
 	}
 }
@@ -128,6 +133,10 @@ void ManagementClient_ReceiveFSM::set_current_client(JausAddress client)
 				ROS_INFO_NAMED("ManagementClient", "cancel EVENT for mgmt status by %s", p_current_client.str().c_str());
 				pEventsClient_ReceiveFSM->cancel_event(*this, p_current_client, p_query_status);
 			}
+			p_status = 255;
+			std_msgs::String ros_msg;
+			ros_msg.data = p_status_to_str(p_status);
+			p_pub_status.publish(ros_msg);
 		}
 		p_current_client = client;
 		if (p_current_client.get() != 0) {
