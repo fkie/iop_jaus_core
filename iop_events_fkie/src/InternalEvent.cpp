@@ -44,7 +44,7 @@ InternalEvent::InternalEvent(InternalEventList* event_list)
 	p_error_code = 4;
 	p_error_msg = "Event was not initialized";
 	p_initialized = false;
-	p_first_report = NULL;
+	p_last_report = NULL;
 }
 
 InternalEvent::InternalEvent(InternalEventList* event_list, jUnsignedByte request_id, jUnsignedShortInteger query_msg_id, jUnsignedByte event_type, double event_rate)
@@ -68,7 +68,7 @@ InternalEvent::InternalEvent(InternalEventList* event_list, jUnsignedByte reques
 	p_query_msg_id = query_msg_id;
 	p_event_type = event_type;
 	p_event_rate = event_rate;
-	p_first_report = NULL;
+	p_last_report = NULL;
 	p_is_event_supported(query_msg_id, event_type, event_rate);
 }
 
@@ -93,7 +93,7 @@ InternalEvent::InternalEvent(InternalEventList* event_list, jUnsignedByte event_
 	p_query_msg_id = query_msg_id;
 	p_event_type = event_type;
 	p_event_rate = event_rate;
-	p_first_report = NULL;
+	p_last_report = NULL;
 
 	if (p_is_event_supported(query_msg_id, event_type, event_rate)) {
 		p_request_id = request_id;
@@ -124,13 +124,16 @@ bool InternalEvent::operator!=(InternalEvent &value)
 	return !(*this == value);
 }
 
-void InternalEvent::new_report_available(JTS::Message *report)
+void InternalEvent::new_report_available(JTS::Message *report, bool send_if_possible)
 {
 	if (report != NULL) {
 		if (p_event_type == 1) {
 			// send on change
-			p_first_report = report;
-			// p_send_as_event(*report, requestor);
+			if (send_if_possible) {
+				p_send_as_event(*report, requestor);
+			} else {
+				p_last_report = report;
+			}
 		} else {
 			if (p_timeout_timer.isValid()) {
 				// do nothing, the report will be send on next timer call
@@ -144,11 +147,12 @@ void InternalEvent::new_report_available(JTS::Message *report)
 	}
 }
 
-void InternalEvent::send_if_available(){
-	if (p_first_report != NULL) {
+void InternalEvent::send_last_report(){
+	if (p_last_report != NULL) {
 		if (p_event_type == 1) {
-			p_send_as_event(*p_first_report, requestor);
-			p_first_report = NULL;
+			ROS_DEBUG_NAMED("Events", "  send available report: %#x", p_last_report->getID());
+			p_send_as_event(*p_last_report, requestor);
+			p_last_report = NULL;
 		}
 	}
 }
