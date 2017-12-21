@@ -109,6 +109,7 @@ void Events_ReceiveFSM::createEventAction(CreateEvent msg, Receive::Body::Receiv
 		ROS_DEBUG_NAMED("Events", "send confirm create event to %s, request id: %d, query msg id: %#x",
 				requestor.str().c_str(), event->get_request_id(), event->get_query_msg_id());
 		sendJausMessage( response, requestor );
+		event->send_if_available();
 	} else {
 		// send Reject message
 		RejectEventRequest revent;

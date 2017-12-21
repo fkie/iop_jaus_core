@@ -62,6 +62,8 @@ public:
 	/** This method is called if the send interval is handled by event service and the report is only updated in some cases.
 	 * Use send_report() if the send interval and report content is handled the the caller class. */
 	void new_report_available(JTS::Message *report);
+	/** sends report, if one is availabe after creation */
+	void send_if_available();
 	urn_jaus_jss_core_Events::CreateEvent::Body::CreateEventRec::QueryMessage &get_query();
 	/** If you use filter setted by query message, use send_report() to send filtered reports. */
 	void send_report(JTS::Message &report, unsigned short id=0);
@@ -101,6 +103,7 @@ protected:
 	jUnsignedByte p_error_code;
 	std::string p_error_msg;
 	bool p_initialized;
+	JTS::Message *p_first_report;
 	std::map<jUnsignedShortInteger, ros::Time> p_last_send;  // some sensor id of a report, last send time
 
 	bool p_is_event_supported(jUnsignedShortInteger query_msg_id, jUnsignedByte p_event_type, double p_event_rate);
