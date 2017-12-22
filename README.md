@@ -12,6 +12,7 @@ List of service plugins in this repository:
 [iop_events_fkie: Events](#iop_events_fkie-events)  
 [iop_events_fkie: EventsClient](#iop_events_fkie-eventsclient)  
 [iop_list_manager_fkie: ListManager](#iop_list_manager_fkie-listmanager)  
+[iop_list_manager_fkie: ListManagerClient](#iop_list_manager_fkie-listmanagerclient)
 [iop_liveness_fkie: Liveness](#iop_liveness_fkie-liveness)  
 [iop_management_fkie: Management](#iop_management_fkie-management)  
 [iop_management_fkie: ManagementClient](#iop_management_fkie-managementclient)  
@@ -163,6 +164,23 @@ This service register events on Events service and update it to avoid timeout or
 ## _iop_list_manager_fkie:_ ListManager
 
 Implements list manager functionality used e.g. by GlobalWaypointListDriver
+
+#### Parameter:
+
+> None
+
+#### Publisher:
+
+> None
+
+#### Subscriber:
+
+> None
+
+
+## _iop_list_manager_fkie:_ ListManagerClient
+
+Implements client for list manager functionality used e.g. by GlobalWaypointListDriverClient
 
 #### Parameter:
 
