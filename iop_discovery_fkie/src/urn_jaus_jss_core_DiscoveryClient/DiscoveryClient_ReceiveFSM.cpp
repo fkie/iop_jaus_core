@@ -171,7 +171,7 @@ bool DiscoveryClient_ReceiveFSM::pUpdateSystemSrv(std_srvs::Empty::Request  &req
 	return true;
 }
 
-JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, ServiceDef service, int subsystem)
+JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, ServiceDef service, unsigned short subsystem)
 {
 	ReportServices::Body::NodeList *node_list = msg.getBody()->getNodeList();
 	ROS_DEBUG_NAMED("DiscoveryClient", "pGetService search: %s, %d", service.service_uri.c_str(), subsystem);
@@ -188,7 +188,7 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, Service
 				ROS_DEBUG_NAMED("DiscoveryClient", "pGetService: %s", service_rec->getURI().c_str());
 				if (service.service_uri.compare(service_rec->getURI()) == 0
 						&& service.major_version == service_rec->getMajorVersionNumber()
-						&& service.minor_version == service_rec->getMinorVersionNumber()) {
+						&& (service.minor_version == service_rec->getMinorVersionNumber() || service.minor_version == 255)) {
 					JausAddress address(0);
 					address.setSubsystemID(subsystem);
 					address.setNodeID(node->getNodeID());
@@ -201,7 +201,7 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, Service
 	return JausAddress(0);
 }
 
-JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, ServiceDef service, int subsystem)
+JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, ServiceDef service, unsigned short subsystem)
 {
 	ReportServiceList::Body::SubsystemList *ssys_list = msg.getBody()->getSubsystemList();
 	for (unsigned int s = 0; s < ssys_list->getNumberOfElements(); s++) {
@@ -221,7 +221,7 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, Serv
 						ReportServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq::ComponentList::ComponentSeq::ServiceList::ServiceRec *service_rec = service_list->getElement(s);
 						if (service.service_uri.compare(service_rec->getURI()) == 0
 								&& service.major_version == service_rec->getMajorVersionNumber()
-								&& service.minor_version == service_rec->getMinorVersionNumber()) {
+								&& (service.minor_version == service_rec->getMinorVersionNumber() || service.minor_version == 255)) {
 							JausAddress address(0);
 							address.setSubsystemID(subsystem);
 							address.setNodeID(node->getNodeID());
@@ -236,7 +236,7 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, Serv
 	return JausAddress(0);
 }
 
-void DiscoveryClient_ReceiveFSM::appendServiceUri(std::string service_uri, int major_version, int minor_version)
+void DiscoveryClient_ReceiveFSM::appendServiceUri(std::string service_uri, unsigned char major_version, unsigned char minor_version)
 {
 	ServiceDef service;
 	service.service_uri = service_uri;
@@ -785,7 +785,7 @@ bool DiscoveryClient_ReceiveFSM::onRegistration()
 	return p_on_registration;
 }
 
-void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, int major_version, int minor_version, int subsystem)
+void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, unsigned char major_version, unsigned char minor_version, unsigned short subsystem)
 {
 	p_count_discover_tries = 0;
 	ServiceDef service(service_uri, major_version, minor_version);
@@ -795,13 +795,13 @@ void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, int major_ve
 	for (unsigned int i = 0; i < p_discover_services.size(); i++) {
 		if (p_discover_services[i].service == service
 				&& p_discover_services[i].subsystem == subsystem) {
-			ROS_DEBUG_NAMED("DiscoveryClient", "%s for subsystem: %d already in discover, skip", service_uri.c_str(), subsystem);
+			ROS_DEBUG_NAMED("DiscoveryClient", "%s %d.%d for subsystem: %d already in discover, skip", service_uri.c_str(), major_version, minor_version, subsystem);
 			p_discover_services[i].discovered_in.clear();
 			mutex_.unlock();
 			return;
 		}
 	}
-	ROS_DEBUG_NAMED("DiscoveryClient", "added %s for subsystem: %d to discovery", service_uri.c_str(), subsystem);
+	ROS_DEBUG_NAMED("DiscoveryClient", "added %s %d.%d for subsystem: %d to discovery", service_uri.c_str(), major_version, minor_version, subsystem);
 	DiscoverItem di;
 	di.service = service;
 	di.subsystem = subsystem;
@@ -838,7 +838,7 @@ void DiscoveryClient_ReceiveFSM::cancel_discovery()
 	mutex_.unlock();
 }
 
-void DiscoveryClient_ReceiveFSM::cancel_discovery(std::string service_uri, int major_version, int minor_version)
+void DiscoveryClient_ReceiveFSM::cancel_discovery(std::string service_uri, unsigned char major_version, unsigned char minor_version)
 {
 	mutex_.lock();
 	ServiceDef service(service_uri, major_version, minor_version);

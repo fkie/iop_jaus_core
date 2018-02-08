@@ -95,9 +95,9 @@ public:
 	virtual bool onRegistration();
 
 	void setDiscoveryFSM(Discovery_ReceiveFSM *discovery_fsm);
-	void appendServiceUri(std::string service_uri, int major_version=1, int minor_version=0);
+	void appendServiceUri(std::string service_uri, unsigned char major_version=1, unsigned char minor_version=0);
 	template<class T>
-	void discover(std::string service_uri, void(T::*handler)(const std::string &, JausAddress &), T*obj, int major_version=1, int minor_version=0, int subsystem=65535)
+	void discover(std::string service_uri, void(T::*handler)(const std::string &, JausAddress &), T*obj, unsigned char major_version=1, unsigned char minor_version=255, unsigned short subsystem=65535)
 	{
 		boost::function<void (const std::string &, JausAddress &)> callback = boost::bind(handler, obj, _1, _2);;
 		ServiceDef service(service_uri, major_version, minor_version);
@@ -105,7 +105,7 @@ public:
 		pDiscover(service_uri, major_version, minor_version, subsystem);
 	}
 	void cancel_discovery();
-	void cancel_discovery(std::string service_uri, int major_version=1, int minor_version=0);
+	void cancel_discovery(std::string service_uri, unsigned char major_version=1, unsigned char minor_version=255);
 	void query_identification(int query_type, jUnsignedShortInteger subsystem=0xFFFF, jUnsignedByte node=0xFF, jUnsignedByte component=0xFF);
 	template<class T>
 	void set_discovery_handler(void(T::*handler)(const std::string &, JausAddress &), T*obj) {
@@ -123,14 +123,14 @@ protected:
 			this->major_version = 0;
 			this->minor_version = 0;
 		}
-		ServiceDef(std::string service_uri, int major_version, int minor_version) {
+		ServiceDef(std::string service_uri, unsigned char major_version, unsigned char minor_version) {
 			this->service_uri = service_uri;
 			this->major_version = major_version;
 			this->minor_version = minor_version;
 		}
 		std::string service_uri;
-		int major_version;
-		int minor_version;
+		unsigned char major_version;
+		unsigned char minor_version;
 		// comparable for the map
 		bool operator<( const ServiceDef& other) const
 		{
@@ -142,8 +142,8 @@ protected:
 		}
 		bool operator==( const ServiceDef& other) const
 		{
-			bool mj_equal = (major_version == other.major_version);
-			bool mn_equal = (minor_version == other.minor_version);
+			bool mj_equal = (major_version == other.major_version || major_version == 255 || other.major_version == 255);
+			bool mn_equal = (minor_version == other.minor_version || minor_version == 255 || other.minor_version == 255);
 			return (mj_equal && mn_equal && (service_uri == other.service_uri));
 		}
 	};
@@ -194,8 +194,8 @@ protected:
 	std::vector<DiscoverItem> p_discover_services;
 	void pRegistrationFinished();
 	void pCheckTimer();
-	JausAddress pGetService(ReportServices &msg, ServiceDef service, int subsystem);
-	JausAddress pGetService(ReportServiceList &msg, ServiceDef service, int subsystem);
+	JausAddress pGetService(ReportServices &msg, ServiceDef service, unsigned short subsystem);
+	JausAddress pGetService(ReportServiceList &msg, ServiceDef service, unsigned short subsystem);
 	bool pIsKnownComponent(iop_msgs_fkie::JausAddress &addr);
 	bool pEqualIdent(iop_msgs_fkie::Identification &ros_ident, iop_msgs_fkie::JausAddress &addr);
 	void pUpdateSubsystemIdent(iop_msgs_fkie::JausAddress &addr, ReportIdentification &report_ident);
@@ -216,7 +216,7 @@ protected:
 
 	bool pQueryIdentificationSrv(iop_msgs_fkie::QueryIdentification::Request  &req, iop_msgs_fkie::QueryIdentification::Response &res);
 	bool pUpdateSystemSrv(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res);
-	void pDiscover(std::string service_uri, int major_version=1, int minor_version=0, int subsystem=65535);
+	void pDiscover(std::string service_uri, unsigned char major_version=1, unsigned char minor_version=0, unsigned short subsystem=65535);
 	std::map<int, std::string> p_system_id_map();
 
 };
