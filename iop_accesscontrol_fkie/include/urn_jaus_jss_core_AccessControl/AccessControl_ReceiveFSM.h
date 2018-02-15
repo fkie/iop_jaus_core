@@ -80,6 +80,9 @@ public:
 	void delete_emergency_address(JausAddress address);
 	bool has_emergency_address(JausAddress address);
 	void timeout(void* arg);
+	JausAddress current_controller() {
+		return p_current_controller;
+	}
 
 	AccessControl_ReceiveFSMContext *context;
 
