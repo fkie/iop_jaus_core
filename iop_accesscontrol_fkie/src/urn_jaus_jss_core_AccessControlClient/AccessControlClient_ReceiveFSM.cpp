@@ -103,8 +103,10 @@ void AccessControlClient_ReceiveFSM::handleConfirmControlAction(ConfirmControl m
 		pInformReplyCallbacks(sender, ACCESS_STATE_NOT_AVAILABLE);
 	} else if (rcode == 2) {
 		ROS_WARN_NAMED("AccessControlClient", "INSUFFICIENT_AUTHORITY: %d.%d.%d", subsystem_id, node_id, component_id);
-		QueryAuthority q_msg;
-		this->sendJausMessage(q_msg, sender);
+		QueryAuthority qa_msg;
+		this->sendJausMessage(qa_msg, sender);
+		QueryControl qc_msg;
+		this->sendJausMessage(qc_msg, sender);
 		pInformReplyCallbacks(sender, ACCESS_STATE_INSUFFICIENT_AUTHORITY);
 	}
 	mutex.lock();
