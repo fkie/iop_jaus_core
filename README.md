@@ -28,6 +28,9 @@ _access_timeout (int_, (Default: 10)
 
 > Time period in seconds after which the exclusive control goes lost. Zero disables the timeout.
 
+_default_authority (int_, (Default: 1)
+
+> The authority level of a client requesting control must be greather than or equal to the this value.
 
 #### Publisher:
 

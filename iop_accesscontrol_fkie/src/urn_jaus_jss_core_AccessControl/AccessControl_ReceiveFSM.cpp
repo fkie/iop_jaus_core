@@ -80,6 +80,9 @@ void AccessControl_ReceiveFSM::setupNotifications()
 
 	iop::Config cfg("~AccessControl");
 	cfg.param("access_timeout", p_default_timeout, p_default_timeout);
+	int da = p_default_authority;
+	cfg.param("default_authority", da, da);
+	p_default_authority = da;
 	p_timer->stop();
 	if (p_default_timeout > 0) {
 		delete p_timer;
