@@ -60,6 +60,7 @@ DiscoveryClient_ReceiveFSM::DiscoveryClient_ReceiveFSM(urn_jaus_jss_core_Transpo
 	p_recved_service_lists = false;
 	p_timeout_event = new InternalEvent("Timeout", "ControlTimeout");
 	p_enable_ros_interface = false;
+	p_timeout_discover_service = 60;
 }
 
 
@@ -84,6 +85,7 @@ void DiscoveryClient_ReceiveFSM::setupNotifications()
 	cfg.param("register_own_services", register_own_services, register_own_services, true, false);
 	cfg.param("force_component_update_after", p_force_component_update_after, p_force_component_update_after);
 	cfg.param("enable_ros_interface", p_enable_ros_interface, p_enable_ros_interface);
+	cfg.param("timeout_discover_service", p_timeout_discover_service, p_timeout_discover_service);
 
 	ros::NodeHandle nh;
 	p_timeout_timer = nh.createWallTimer(ros::WallDuration(p_current_timeout), &DiscoveryClient_ReceiveFSM::pTimeoutCallback, this, false, false);
@@ -115,7 +117,7 @@ void DiscoveryClient_ReceiveFSM::setDiscoveryFSM(Discovery_ReceiveFSM *discovery
 	if (p_discovery_fsm != NULL) {
 		if (p_discovery_fsm->getSystemID() == TYPE_SUBSYSTEM) {
 			for (unsigned int i = 0; i < p_own_uri_services.size(); i++) {
-				ServiceDef &service = p_own_uri_services[i];
+				iop::DiscoveryServiceDef &service = p_own_uri_services[i];
 				p_discovery_fsm->registerService(service.minor_version,
 						service.major_version,
 						service.service_uri,
@@ -160,18 +162,20 @@ void DiscoveryClient_ReceiveFSM::pCheckTimer()
 bool DiscoveryClient_ReceiveFSM::pQueryIdentificationSrv(iop_msgs_fkie::QueryIdentification::Request  &req,
 		iop_msgs_fkie::QueryIdentification::Response &res)
 {
+	p_check_for_timeout_discovery_service();
 	this->query_identification(req.type, 0xFFFF, 0xFF, 0xFF);
 	return true;
 }
 
 bool DiscoveryClient_ReceiveFSM::pUpdateSystemSrv(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res)
 {
-	p_service_list_stamps.clear();
+//	p_discovery_srvs_stamps.clear();
+	p_check_for_timeout_discovery_service();
 	this->query_identification(2, 0xFFFF, 0xFF, 0xFF);
 	return true;
 }
 
-JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, ServiceDef service, unsigned short subsystem)
+JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, iop::DiscoveryServiceDef service, unsigned short subsystem)
 {
 	ReportServices::Body::NodeList *node_list = msg.getBody()->getNodeList();
 	ROS_DEBUG_NAMED("DiscoveryClient", "pGetService search: %s, %d", service.service_uri.c_str(), subsystem);
@@ -201,7 +205,7 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, Service
 	return JausAddress(0);
 }
 
-JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, ServiceDef service, unsigned short subsystem)
+JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, iop::DiscoveryServiceDef service, unsigned short subsystem)
 {
 	ReportServiceList::Body::SubsystemList *ssys_list = msg.getBody()->getSubsystemList();
 	for (unsigned int s = 0; s < ssys_list->getNumberOfElements(); s++) {
@@ -238,7 +242,7 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, Serv
 
 void DiscoveryClient_ReceiveFSM::appendServiceUri(std::string service_uri, unsigned char major_version, unsigned char minor_version)
 {
-	ServiceDef service;
+	iop::DiscoveryServiceDef service;
 	service.service_uri = service_uri;
 	service.minor_version = minor_version;
 	service.major_version = major_version;
@@ -261,7 +265,7 @@ void DiscoveryClient_ReceiveFSM::appendServiceUri(std::string service_uri, unsig
 		if (ssid == addr.getSubsystemID()) {
 			if (p_discover_services[i].service.service_uri.compare(service_uri) == 0) {
 				// the service was found, forward the address to the callback
-				ServiceDef service = p_discover_services[i].service;
+				iop::DiscoveryServiceDef service = p_discover_services[i].service;
 				ROS_DEBUG_NAMED("DiscoveryClient", "local service '%s' discovered @%s", service.service_uri.c_str(), addr.str().c_str());
 				p_discover_services[i].discovered_in.insert(ssid);
 				pInformDiscoverCallbacks(service, addr);
@@ -324,18 +328,18 @@ void DiscoveryClient_ReceiveFSM::handleReportConfigurationAction(ReportConfigura
 
 void DiscoveryClient_ReceiveFSM::handleReportIdentificationAction(ReportIdentification msg, Receive::Body::ReceiveRec transportData)
 {
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	iop_msgs_fkie::Identification ros_msg;
 	ros_msg.request_type = msg.getBody()->getReportIdentificationRec()->getQueryType();
 	ros_msg.system_type = msg.getBody()->getReportIdentificationRec()->getType();
 	ros_msg.name = msg.getBody()->getReportIdentificationRec()->getIdentification();
 	unsigned short subsystem_id = transportData.getSourceID()->getSubsystemID();
+	JausAddress sender(subsystem_id, transportData.getSourceID()->getNodeID(),transportData.getSourceID()->getComponentID());
 	ros_msg.address.subsystem_id = subsystem_id;
 	ros_msg.address.node_id = transportData.getSourceID()->getNodeID();
 	ros_msg.address.component_id = transportData.getSourceID()->getComponentID();
-	ROS_DEBUG_NAMED("DiscoveryClient", "reportedIdentificationAction from sender: %d.%d.%d, request_type: %d, system_type: %d, name: %s",
-			transportData.getSourceID()->getSubsystemID(), transportData.getSourceID()->getNodeID(), transportData.getSourceID()->getComponentID(),
-			(int)ros_msg.request_type, (int)ros_msg.system_type, ros_msg.name.c_str());
+	ROS_DEBUG_NAMED("DiscoveryClient", "reportedIdentificationAction from sender: %s, request_type: %d, system_type: %d, name: %s",
+			sender.str().c_str(), (int)ros_msg.request_type, (int)ros_msg.system_type, ros_msg.name.c_str());
 	if (ros_msg.request_type == 1) {
 		// update the system identification
 		p_discovered_system.name = ros_msg.name;
@@ -350,12 +354,11 @@ void DiscoveryClient_ReceiveFSM::handleReportIdentificationAction(ReportIdentifi
 	if (p_enable_ros_interface) {
 		p_pub_identification.publish(ros_msg);
 	}
-	JausAddress sender(subsystem_id, transportData.getSourceID()->getNodeID(),transportData.getSourceID()->getComponentID());
 	// doupdate if 1: no service list was received or
 	//             2: last update is more then p_force_component_update_after ago
 	//             3: max count of ties is not reached
-	bool found = p_service_list_stamps.find(sender.get()) != p_service_list_stamps.end();
-	bool doupdate = not found || ros::Time::now() - p_service_list_stamps[sender.get()] > ros::Duration(p_force_component_update_after);
+	bool found = p_discovery_srvs_stamps.find(sender.getSubsystemID()) != p_discovery_srvs_stamps.end();
+	bool doupdate = not found || ros::WallTime::now().sec - p_discovery_srvs_stamps[sender.getSubsystemID()] > p_force_component_update_after;
 	doupdate = doupdate || p_count_discover_tries <= TIMEOUT_STANDBY / TIMEOUT_DISCOVER;
 	if ((pHasToDiscover(subsystem_id) || p_enable_ros_interface) && doupdate) {
 		// remove the subsystem from discovered systems
@@ -396,22 +399,17 @@ void DiscoveryClient_ReceiveFSM::handleReportIdentificationAction(ReportIdentifi
 		clist->addElement(cr);
 		this->sendJausMessage(req_srvl_msg, sender);
 		p_count_queries += 1;
-
 	}
-	mutex_.unlock();
+	p_discovery_srvs_stamps[sender.getSubsystemID()] = ros::WallTime::now().sec;
 }
 
 void DiscoveryClient_ReceiveFSM::handleReportServiceListAction(ReportServiceList msg, Receive::Body::ReceiveRec transportData)
 {
 	p_recved_service_lists = true;
 	p_count_queries = 0;
-	ROS_DEBUG_NAMED("DiscoveryClient", "handleReportServiceListAction from sender: subsystem: %d, node: %d, component: %d",
-			transportData.getSourceID()->getSubsystemID(), transportData.getSourceID()->getNodeID(), transportData.getSourceID()->getComponentID());
-	JausAddress sender(transportData.getSourceID()->getSubsystemID(),
-			transportData.getSourceID()->getNodeID(),
-			transportData.getSourceID()->getComponentID());
-	p_service_list_stamps[sender.get()] = ros::Time::now();
-	/// Insert User Code HERE
+	JausAddress sender = transportData.getAddress();
+	ROS_DEBUG_NAMED("DiscoveryClient", "handleReportServiceListAction from sender: %s", sender.str().c_str());
+	p_discovery_srvs_stamps[sender.getSubsystemID()] = ros::WallTime::now().sec;
 	// This message is received after own services are registered -> test is service registered?
 	// or after QueryServices was send
 	if (p_on_registration) {
@@ -468,7 +466,7 @@ void DiscoveryClient_ReceiveFSM::handleReportServiceListAction(ReportServiceList
 	// Create ROS message from components
 	if (p_enable_ros_interface) {
 		// update the object with discovered system and publish it to ROS
-		mutex_.lock();
+		lock_type lock(p_mutex);
 		iop_msgs_fkie::JausAddress node_addr;
 		node_addr.subsystem_id = transportData.getSourceID()->getSubsystemID();
 		node_addr.node_id = transportData.getSourceID()->getNodeID();
@@ -494,10 +492,9 @@ void DiscoveryClient_ReceiveFSM::handleReportServiceListAction(ReportServiceList
 			}
 		}
 		p_pub_system.publish(p_discovered_system);
-		mutex_.unlock();
 	}
 	// check for services to discover, but only if a discovery_handler is set
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	for (int i = p_discover_services.size()-1; i >= 0; --i) {
 		if (!p_discover_services[i].discovered(transportData.getSourceID()->getSubsystemID())) {
 			ROS_DEBUG_NAMED("DiscoveryClient", "  discover %s, subsystem: %d", p_discover_services[i].service.service_uri.c_str(), p_discover_services[i].subsystem);
@@ -513,7 +510,7 @@ void DiscoveryClient_ReceiveFSM::handleReportServiceListAction(ReportServiceList
 				JausAddress addr = this->pGetService(msg, p_discover_services[i].service, ssid);
 				if (addr.get() != 0) {
 					// the service was found, forward the address to the callback
-					ServiceDef service = p_discover_services[i].service;
+					iop::DiscoveryServiceDef service = p_discover_services[i].service;
 					ROS_DEBUG_NAMED("DiscoveryClient", "service '%s' discovered @%d.%d.%d through service list", service.service_uri.c_str(), addr.getSubsystemID(), addr.getNodeID(), addr.getComponentID());
 					p_discover_services[i].discovered_in.insert(transportData.getSourceID()->getSubsystemID());
 					pInformDiscoverCallbacks(service, addr);
@@ -524,7 +521,6 @@ void DiscoveryClient_ReceiveFSM::handleReportServiceListAction(ReportServiceList
 //		}
 	}
 	pCheckTimer();
-	mutex_.unlock();
 }
 
 void DiscoveryClient_ReceiveFSM::handleReportServicesAction(ReportServices msg, Receive::Body::ReceiveRec transportData)
@@ -581,7 +577,7 @@ void DiscoveryClient_ReceiveFSM::handleReportServicesAction(ReportServices msg, 
 	// Create ROS message from components
 	if (p_enable_ros_interface) {
 		// update the object with discovered system and publish it to ROS
-		mutex_.lock();
+		lock_type lock(p_mutex);
 		iop_msgs_fkie::JausAddress node_addr;
 		node_addr.subsystem_id = transportData.getSourceID()->getSubsystemID();
 		node_addr.node_id = transportData.getSourceID()->getNodeID();
@@ -602,10 +598,9 @@ void DiscoveryClient_ReceiveFSM::handleReportServicesAction(ReportServices msg, 
 			}
 		}
 		p_pub_system.publish(p_discovered_system);
-		mutex_.unlock();
 	}
 	// check for services to discover, but only if a discovery_handler is set
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	for (int i = p_discover_services.size()-1; i >= 0; --i) {
 		if (!p_discover_services[i].discovered(transportData.getSourceID()->getSubsystemID())) {
 			ROS_DEBUG_NAMED("DiscoveryClient", "  discover %s, subsystem: %d", p_discover_services[i].service.service_uri.c_str(), p_discover_services[i].subsystem);
@@ -621,7 +616,7 @@ void DiscoveryClient_ReceiveFSM::handleReportServicesAction(ReportServices msg, 
 				JausAddress addr = this->pGetService(msg, p_discover_services[i].service, ssid);
 				if (addr.get() != 0) {
 					// the service was found, forward the address to the callback
-					ServiceDef service = p_discover_services[i].service;
+					iop::DiscoveryServiceDef service = p_discover_services[i].service;
 					ROS_DEBUG_NAMED("DiscoveryClient", "service '%s' discovered @%d.%d.%d through services old stile, using QueryServices", service.service_uri.c_str(), addr.getSubsystemID(), addr.getNodeID(), addr.getComponentID());
 					p_discover_services[i].discovered_in.insert(transportData.getSourceID()->getSubsystemID());
 					pInformDiscoverCallbacks(service, addr);
@@ -632,7 +627,6 @@ void DiscoveryClient_ReceiveFSM::handleReportServicesAction(ReportServices msg, 
 //		}
 	}
 	pCheckTimer();
-	mutex_.unlock();
 }
 
 void DiscoveryClient_ReceiveFSM::handleReportSubsystemListAction(ReportSubsystemList msg, Receive::Body::ReceiveRec transportData)
@@ -651,6 +645,8 @@ void DiscoveryClient_ReceiveFSM::handleReportSubsystemListAction(ReportSubsystem
 
 void DiscoveryClient_ReceiveFSM::sendQueryIdentificationAction()
 {
+	// remove expired subsystems (not responding to query identification messages)
+	p_check_for_timeout_discovery_service();
 	if (!(pHasToDiscover(65535) || p_enable_ros_interface)) {
 		// if we descovered all services and have no enabled ROS interface we send only subsystem queries
 		query_identification(TYPE_SUBSYSTEM, 0xFFFF, 0xFF, 0xFF);
@@ -679,7 +675,7 @@ void DiscoveryClient_ReceiveFSM::sendQueryIdentificationAction()
 		if (p_discover_services.size() > 0) {
 			std::set<int> subsystems;
 			subsystems.insert(subsystem_id);
-			mutex_.lock();
+			lock_type lock(p_mutex);
 			for (unsigned int i = 0; i < p_discover_services.size(); i++) {
 				if (!p_discover_services[i].discovered()) {
 					subsystem_id = p_discover_services[i].subsystem;
@@ -695,7 +691,6 @@ void DiscoveryClient_ReceiveFSM::sendQueryIdentificationAction()
 					}
 				}
 			}
-			mutex_.unlock();
 		}
 	}
 	if (p_count_discover_tries <= TIMEOUT_STANDBY / TIMEOUT_DISCOVER) {
@@ -720,11 +715,8 @@ void DiscoveryClient_ReceiveFSM::sendRegisterServicesAction(ReportIdentification
 		if (this->jausRouter->getJausAddress()->getSubsystemID() == transportData.getSourceID()->getSubsystemID()) {
 			if (!onRegistration() && !isRegistered()) {
 				p_on_registration = true;
-				p_addr_discovery_service = JausAddress(transportData.getSourceID()->getSubsystemID(),
-						transportData.getSourceID()->getNodeID(),
-						transportData.getSourceID()->getComponentID());
-				ROS_INFO_NAMED("DiscoveryClient", "register services by [%d.%d.%d]",
-						transportData.getSourceID()->getSubsystemID(), transportData.getSourceID()->getNodeID(), transportData.getSourceID()->getComponentID());
+				p_addr_discovery_service = transportData.getAddress();
+				ROS_INFO_NAMED("DiscoveryClient", "register services by [%s]", p_addr_discovery_service.str().c_str());
 				ROS_DEBUG_NAMED("DiscoveryClient", "Discovery service info:");
 				ROS_DEBUG_NAMED("DiscoveryClient", "  QueryType: %d", msg.getBody()->getReportIdentificationRec()->getQueryType());
 				ROS_DEBUG_NAMED("DiscoveryClient", "  Type     : %d", msg.getBody()->getReportIdentificationRec()->getType());
@@ -732,7 +724,7 @@ void DiscoveryClient_ReceiveFSM::sendRegisterServicesAction(ReportIdentification
 				RegisterServices msg_reg_services;
 				RegisterServices::RegisterServicesBody::ServiceList list_services;
 				for (unsigned int i = 0; i < p_own_uri_services.size(); i++) {
-					ServiceDef &service = p_own_uri_services[i];
+					iop::DiscoveryServiceDef &service = p_own_uri_services[i];
 					RegisterServices::RegisterServicesBody::ServiceList::ServiceRec service_rec;
 					service_rec.setMinorVersionNumber(service.minor_version);
 					service_rec.setMajorVersionNumber(service.major_version);
@@ -771,11 +763,51 @@ void DiscoveryClient_ReceiveFSM::sendRegisterServicesAction(ReportIdentification
 	}
 }
 
-
+void DiscoveryClient_ReceiveFSM::p_check_for_timeout_discovery_service()
+{
+	if (p_timeout_discover_service > 0) {
+		std::vector<unsigned short> to_remove;
+		std::map<unsigned short, unsigned int>::iterator it;
+		unsigned int now = ros::WallTime::now().sec;
+		for (it = p_discovery_srvs_stamps.begin(); it != p_discovery_srvs_stamps.end(); it++) {
+			if (it->second > 0) {
+				if (now - it->second > p_timeout_discover_service) {
+					// remove the subsystem from our system published to ROS
+					if (p_enable_ros_interface){
+						bool changed = false;
+						iop_msgs_fkie::System::_subsystems_type::iterator itsubs;
+						for (itsubs = p_discovered_system.subsystems.begin(); itsubs != p_discovered_system.subsystems.end(); itsubs++) {
+							if (itsubs->ident.address.subsystem_id == it->first) {
+								p_discovered_system.subsystems.erase(itsubs);
+								changed = true;
+								break;
+							}
+						}
+						if (changed) {
+							p_pub_system.publish(p_discovered_system);
+						}
+					}
+					// it was the discovery service where we register our services. We need to register again.
+					if (it->first == p_addr_discovery_service.getSubsystemID()) {
+						if (p_is_registered) {
+							ROS_WARN_NAMED("DiscoveryClient", "discovery service timeout, set service to not registered!");
+						}
+						p_is_registered = false;
+					}
+					to_remove.push_back(it->first);
+				}
+			}
+		}
+		// remove expired subsystems
+		for (unsigned int i = 0; i < to_remove.size(); i++) {
+			p_discovery_srvs_stamps.erase(p_discovery_srvs_stamps.find(to_remove[i]));
+		}
+	}
+}
 
 bool DiscoveryClient_ReceiveFSM::isRegistered()
 {
-	/// Insert User Code HERE
+	p_check_for_timeout_discovery_service();
 	return p_is_registered || (p_own_uri_services.size() == 0);
 }
 
@@ -788,16 +820,15 @@ bool DiscoveryClient_ReceiveFSM::onRegistration()
 void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, unsigned char major_version, unsigned char minor_version, unsigned short subsystem)
 {
 	p_count_discover_tries = 0;
-	ServiceDef service(service_uri, major_version, minor_version);
+	iop::DiscoveryServiceDef service(service_uri, major_version, minor_version);
 	JausAddress own_addr = *(this->jausRouter->getJausAddress());
 	bool own_found = false;
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	for (unsigned int i = 0; i < p_discover_services.size(); i++) {
 		if (p_discover_services[i].service == service
 				&& p_discover_services[i].subsystem == subsystem) {
 			ROS_DEBUG_NAMED("DiscoveryClient", "%s %d.%d for subsystem: %d already in discover, skip", service_uri.c_str(), major_version, minor_version, subsystem);
 			p_discover_services[i].discovered_in.clear();
-			mutex_.unlock();
 			return;
 		}
 	}
@@ -818,7 +849,6 @@ void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, unsigned cha
 		}
 	}
 	p_discover_services.push_back(di);
-	mutex_.unlock();
 	if (own_found) {
 		pInformDiscoverCallbacks(service, own_addr);
 	}
@@ -833,24 +863,21 @@ void DiscoveryClient_ReceiveFSM::pDiscover(std::string service_uri, unsigned cha
 
 void DiscoveryClient_ReceiveFSM::cancel_discovery()
 {
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	p_discover_services.clear();
-	mutex_.unlock();
 }
 
 void DiscoveryClient_ReceiveFSM::cancel_discovery(std::string service_uri, unsigned char major_version, unsigned char minor_version)
 {
-	mutex_.lock();
-	ServiceDef service(service_uri, major_version, minor_version);
+	lock_type lock(p_mutex);
+	iop::DiscoveryServiceDef service(service_uri, major_version, minor_version);
 	for (unsigned int i = 0; i < p_discover_services.size(); i++) {
 		if (p_discover_services[i].service == service) {
 			ROS_DEBUG_NAMED("DiscoveryClient", "remove %s from discover", service_uri.c_str());
 			p_discover_services.erase(p_discover_services.begin() + i);
-			mutex_.unlock();
 			return;
 		}
 	}
-	mutex_.unlock();
 }
 
 void DiscoveryClient_ReceiveFSM::query_identification(int query_type, jUnsignedShortInteger subsystem, jUnsignedByte node, jUnsignedByte component)
@@ -864,7 +891,7 @@ void DiscoveryClient_ReceiveFSM::query_identification(int query_type, jUnsignedS
 
 bool DiscoveryClient_ReceiveFSM::pIsKnownComponent(iop_msgs_fkie::JausAddress &addr)
 {
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	for (unsigned int ssi = 0; ssi < p_discovered_system.subsystems.size(); ssi++) {
 		for (unsigned int ni = 0; ni < p_discovered_system.subsystems[ssi].nodes.size(); ni++) {
 			for (unsigned int ci = 0; ci < p_discovered_system.subsystems[ssi].nodes[ni].components.size(); ci++) {
@@ -879,7 +906,6 @@ bool DiscoveryClient_ReceiveFSM::pIsKnownComponent(iop_msgs_fkie::JausAddress &a
 			}
 		}
 	}
-	mutex_.unlock();
 	return false;
 }
 
@@ -895,7 +921,7 @@ bool DiscoveryClient_ReceiveFSM::pEqualIdent(iop_msgs_fkie::Identification &ros_
 
 void DiscoveryClient_ReceiveFSM::pUpdateSubsystemIdent(iop_msgs_fkie::JausAddress &addr, ReportIdentification &report_ident)
 {
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	// update the node identification
 	bool ss_updated = false;
 	for (unsigned int ssi = 0; ssi < p_discovered_system.subsystems.size(); ssi++) {
@@ -915,12 +941,11 @@ void DiscoveryClient_ReceiveFSM::pUpdateSubsystemIdent(iop_msgs_fkie::JausAddres
 		ss_new.ident.address.component_id = addr.component_id;
 		p_discovered_system.subsystems.push_back(ss_new);
 	}
-	mutex_.unlock();
 }
 
 void DiscoveryClient_ReceiveFSM::pUpdateNodeIdent(iop_msgs_fkie::JausAddress &addr, ReportIdentification &report_ident)
 {
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	// update the node identification
 	for (unsigned int ssi = 0; ssi < p_discovered_system.subsystems.size(); ssi++) {
 		iop_msgs_fkie::Subsystem &ss= p_discovered_system.subsystems[ssi];
@@ -945,13 +970,12 @@ void DiscoveryClient_ReceiveFSM::pUpdateNodeIdent(iop_msgs_fkie::JausAddress &ad
 			}
 		}
 	}
-	mutex_.unlock();
 }
 
 void DiscoveryClient_ReceiveFSM::pUpdateComponent(iop_msgs_fkie::JausAddress &node_addr, iop_msgs_fkie::JausAddress &addr, ReportServices::Body::NodeList::NodeSeq::ComponentList::ComponentSeq::ServiceList *service_list)
 {
 	// update the service list for given component
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	bool cmp_updated = false;
 	for (unsigned int ssi = 0; ssi < p_discovered_system.subsystems.size(); ssi++) {
 		if (p_discovered_system.subsystems[ssi].ident.address.subsystem_id == addr.subsystem_id) {
@@ -1003,13 +1027,12 @@ void DiscoveryClient_ReceiveFSM::pUpdateComponent(iop_msgs_fkie::JausAddress &no
 			}
 		}
 	}
-	mutex_.unlock();
 }
 
 void DiscoveryClient_ReceiveFSM::pUpdateComponent(iop_msgs_fkie::JausAddress &node_addr, iop_msgs_fkie::JausAddress &addr, ReportServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq::ComponentList::ComponentSeq::ServiceList *service_list)
 {
 	// update the service list for given component
-	mutex_.lock();
+	lock_type lock(p_mutex);
 	bool cmp_updated = false;
 	for (unsigned int ssi = 0; ssi < p_discovered_system.subsystems.size(); ssi++) {
 		for (unsigned int ni = 0; ni < p_discovered_system.subsystems[ssi].nodes.size(); ni++) {
@@ -1057,7 +1080,6 @@ void DiscoveryClient_ReceiveFSM::pUpdateComponent(iop_msgs_fkie::JausAddress &no
 			}
 		}
 	}
-	mutex_.unlock();
 }
 
 bool DiscoveryClient_ReceiveFSM::pHasToDiscover(unsigned short subsystem_id)
@@ -1080,9 +1102,9 @@ bool DiscoveryClient_ReceiveFSM::pHasToDiscover(unsigned short subsystem_id)
 	return false;
 }
 
-void DiscoveryClient_ReceiveFSM::pInformDiscoverCallbacks(ServiceDef &service, JausAddress &address)
+void DiscoveryClient_ReceiveFSM::pInformDiscoverCallbacks(iop::DiscoveryServiceDef &service, JausAddress &address)
 {
-	std::map <ServiceDef, std::vector<boost::function<void (const std::string &, JausAddress &)> > > ::iterator it;
+	std::map <iop::DiscoveryServiceDef, std::vector<boost::function<void (const std::string &, JausAddress &)> > > ::iterator it;
 	it = p_discover_callbacks.find(service);
 	if (it != p_discover_callbacks.end()) {
 		for (unsigned int i = 0; i < it->second.size(); i++) {

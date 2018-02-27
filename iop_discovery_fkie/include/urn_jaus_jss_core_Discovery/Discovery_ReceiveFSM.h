@@ -37,9 +37,11 @@ along with this program; or you can read the full license at
 #include "urn_jaus_jss_core_Transport/Transport_ReceiveFSM.h"
 #include "urn_jaus_jss_core_Events/Events_ReceiveFSM.h"
 
+#include <iop_discovery_fkie/DiscoveryComponentList.h>
+#include <iop_discovery_fkie/DiscoveryServiceDef.h>
 
 #include "Discovery_ReceiveFSM_sm.h"
-#include "SimpleThread.h"
+
 
 #define RS_SSList ReportServiceList::Body::SubsystemList
 #define RS_NList  RS_SSList::SubsystemSeq::NodeList
@@ -84,9 +86,9 @@ protected:
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
 	urn_jaus_jss_core_Events::Events_ReceiveFSM* pEvents_ReceiveFSM;
 
-	std::vector< std::pair<RegisterServices::RegisterServicesBody::ServiceList::ServiceRec, JausAddress> > uri_services;
 	/** Variables used for registration by system **/
 	std::vector<JausAddress> p_subsystems;
+	iop::DiscoveryComponentList p_component_list;
 
 	// ros parameter
 	// 0: Reserved, 1: System Identification, 2: Subsystem Identification, 3: Node Identification, 4: Component Identification, 5 - 255: Reserved
@@ -95,6 +97,7 @@ protected:
 	int system_type;
 	std::string name_subsystem;
 	std::string name_node;
+	int p_timeout_lost;
 
 	bool isComponentRequested(QueryServices &msg, unsigned int nodeid, unsigned int compid);
 	bool isComponentRequested(QueryServiceList &msg, unsigned int subsystemid, unsigned int nodeid, unsigned int compid);

@@ -54,6 +54,7 @@ along with this program; or you can read the full license at
 #include <iop_msgs_fkie/Subsystem.h>
 #include <iop_msgs_fkie/System.h>
 #include <std_srvs/Empty.h>
+#include <iop_discovery_fkie/DiscoveryServiceDef.h>
 
 
 namespace urn_jaus_jss_core_DiscoveryClient
@@ -100,7 +101,7 @@ public:
 	void discover(std::string service_uri, void(T::*handler)(const std::string &, JausAddress &), T*obj, unsigned char major_version=1, unsigned char minor_version=255, unsigned short subsystem=65535)
 	{
 		boost::function<void (const std::string &, JausAddress &)> callback = boost::bind(handler, obj, _1, _2);;
-		ServiceDef service(service_uri, major_version, minor_version);
+		iop::DiscoveryServiceDef service(service_uri, major_version, minor_version);
 		p_discover_callbacks[service].push_back(callback);
 		pDiscover(service_uri, major_version, minor_version, subsystem);
 	}
@@ -116,43 +117,10 @@ public:
 
 protected:
 
-	class ServiceDef {
-	public:
-		ServiceDef() {
-			this->service_uri = "";
-			this->major_version = 0;
-			this->minor_version = 0;
-		}
-		ServiceDef(std::string service_uri, unsigned char major_version, unsigned char minor_version) {
-			this->service_uri = service_uri;
-			this->major_version = major_version;
-			this->minor_version = minor_version;
-		}
-		std::string service_uri;
-		unsigned char major_version;
-		unsigned char minor_version;
-		// comparable for the map
-		bool operator<( const ServiceDef& other) const
-		{
-			bool mj_equal = (major_version == other.major_version);
-			bool mn_equal = (minor_version == other.minor_version);
-			return ((major_version < other.major_version) ||
-					(mj_equal && (minor_version < other.minor_version)) ||
-					(mj_equal && mn_equal && (service_uri < other.service_uri)));
-		}
-		bool operator==( const ServiceDef& other) const
-		{
-			bool mj_equal = (major_version == other.major_version || major_version == 255 || other.major_version == 255);
-			bool mn_equal = (minor_version == other.minor_version || minor_version == 255 || other.minor_version == 255);
-			return (mj_equal && mn_equal && (service_uri == other.service_uri));
-		}
-	};
-
 	class DiscoverItem {
 	public:
-		ServiceDef service;
+		iop::DiscoveryServiceDef service;
 		int subsystem;
-//		bool discovered;
 		std::set<unsigned short> discovered_in;
 
 		bool discovered(unsigned short subsystem_id=65535) {
@@ -167,6 +135,10 @@ protected:
 	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
 	urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM;
 
+	typedef boost::recursive_mutex mutex_type;
+	typedef boost::unique_lock<mutex_type> lock_type;
+	mutable mutex_type p_mutex;
+
 	// ros parameter
 	// 0: Reserved, 1: System Identification, 2: Subsystem Identification, 3: Node Identification, 4: Component Identification, 5 - 255: Reserved
 	int system_id;
@@ -178,7 +150,7 @@ protected:
 	bool p_is_registered;
 	bool p_on_registration;
 	int p_count_discover_tries;
-	std::vector<ServiceDef> p_own_uri_services;
+	std::vector<iop::DiscoveryServiceDef> p_own_uri_services;
 	/** Variables used for registration by subsystem or node **/
 	JausAddress p_addr_discovery_service;
 	ros::WallTimer p_timeout_timer;
@@ -187,15 +159,15 @@ protected:
 	/// p_count_queries and p_count_service_lists are for compatibility to v1.0
 	int p_count_queries;
 	bool p_recved_service_lists;
+	int p_timeout_discover_service;
 
-	boost::recursive_mutex mutex_;
-	std::map <ServiceDef, std::vector<boost::function<void (const std::string &, JausAddress &)> > > p_discover_callbacks;  // Service to discover, list with callbacks requested this service
+	std::map <iop::DiscoveryServiceDef, std::vector<boost::function<void (const std::string &, JausAddress &)> > > p_discover_callbacks;  // Service to discover, list with callbacks requested this service
 	boost::function<void (const std::string &, JausAddress &)> class_discovery_callback_;
 	std::vector<DiscoverItem> p_discover_services;
 	void pRegistrationFinished();
 	void pCheckTimer();
-	JausAddress pGetService(ReportServices &msg, ServiceDef service, unsigned short subsystem);
-	JausAddress pGetService(ReportServiceList &msg, ServiceDef service, unsigned short subsystem);
+	JausAddress pGetService(ReportServices &msg, iop::DiscoveryServiceDef service, unsigned short subsystem);
+	JausAddress pGetService(ReportServiceList &msg, iop::DiscoveryServiceDef service, unsigned short subsystem);
 	bool pIsKnownComponent(iop_msgs_fkie::JausAddress &addr);
 	bool pEqualIdent(iop_msgs_fkie::Identification &ros_ident, iop_msgs_fkie::JausAddress &addr);
 	void pUpdateSubsystemIdent(iop_msgs_fkie::JausAddress &addr, ReportIdentification &report_ident);
@@ -204,7 +176,7 @@ protected:
 	void pUpdateComponent(iop_msgs_fkie::JausAddress &node_addr, iop_msgs_fkie::JausAddress &addr, ReportServiceList::Body::SubsystemList::SubsystemSeq::NodeList::NodeSeq::ComponentList::ComponentSeq::ServiceList *service_list);
 	void pTimeoutCallback(const ros::WallTimerEvent& event);
 	bool pHasToDiscover(unsigned short subsystem_id);
-	void pInformDiscoverCallbacks(ServiceDef &service, JausAddress &address);
+	void pInformDiscoverCallbacks(iop::DiscoveryServiceDef &service, JausAddress &address);
 
 	/** Parameter and functions for ROS interface to publish the IOP system.*/
 	bool p_enable_ros_interface;
@@ -212,12 +184,13 @@ protected:
 	ros::Publisher p_pub_system;
 	ros::ServiceServer p_srv_query_ident;
 	ros::ServiceServer p_srv_update_system;
-	std::map<unsigned int, ros::Time> p_service_list_stamps;
+	std::map<unsigned short, unsigned int> p_discovery_srvs_stamps;  // subsystem ID, seconds of last update
 
 	bool pQueryIdentificationSrv(iop_msgs_fkie::QueryIdentification::Request  &req, iop_msgs_fkie::QueryIdentification::Response &res);
 	bool pUpdateSystemSrv(std_srvs::Empty::Request  &req, std_srvs::Empty::Response &res);
 	void pDiscover(std::string service_uri, unsigned char major_version=1, unsigned char minor_version=0, unsigned short subsystem=65535);
 	std::map<int, std::string> p_system_id_map();
+	void p_check_for_timeout_discovery_service();
 
 };
 
