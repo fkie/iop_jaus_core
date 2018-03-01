@@ -55,6 +55,7 @@ add_library(${PROJECT_NAME}
             src/DiscoveryComponent.cpp
             src/DiscoveryComponentList.cpp
             src/DiscoveryPlugin.cpp
+            src/DiscoveryRosInterface.cpp
             src/DiscoveryServiceDef.cpp
             src/DiscoveryServiceList.cpp
             ${cppfiles})

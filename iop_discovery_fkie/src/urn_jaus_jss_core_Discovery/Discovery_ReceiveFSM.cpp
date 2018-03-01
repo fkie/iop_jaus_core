@@ -59,7 +59,7 @@ Discovery_ReceiveFSM::~Discovery_ReceiveFSM()
 
 void Discovery_ReceiveFSM::registerService(int minver, int maxver, std::string serviceuri, JausAddress address)
 {
-	bool result = p_component_list.add_service(address, serviceuri, maxver, minver);
+	bool result = p_component_list.add_service(p_own_address, address, serviceuri, maxver, minver);
 	if (result) {
 		ROS_INFO_NAMED("Discovery", "registered own service '%s' [%s]", serviceuri.c_str(), address.str().c_str());
 	} else {
@@ -93,7 +93,7 @@ void Discovery_ReceiveFSM::setupNotifications()
 	cfg.param("name_subsystem", name_subsystem, name_subsystem);
 	cfg.param("name_node", name_node, name_node);
 	cfg.param("timeout_lost", p_timeout_lost, p_timeout_lost);
-	p_component_list.set_own_address(*(this->jausRouter->getJausAddress()));
+	p_own_address = *(this->jausRouter->getJausAddress());
 	p_component_list.set_timeout(p_timeout_lost);
 }
 
@@ -126,14 +126,14 @@ void Discovery_ReceiveFSM::publishServicesAction(RegisterServices msg, Receive::
 	ROS_DEBUG_NAMED("Discovery", "Register %u new services...", services->getNumberOfElements());
 	for (unsigned int i = 0; i < services->getNumberOfElements(); i++) {
 		RegisterServices::RegisterServicesBody::ServiceList::ServiceRec *service = msg.getRegisterServicesBody()->getServiceList()->getElement(i);
-		bool result = p_component_list.add_service(sender, service->getURI(), service->getMajorVersionNumber(), service->getMinorVersionNumber());
+		bool result = p_component_list.add_service(p_own_address, sender, service->getURI(), service->getMajorVersionNumber(), service->getMinorVersionNumber());
 		if (result) {
 			ROS_INFO_NAMED("Discovery", "registered '%s' [%s]", service->getURI().c_str(), sender.str().c_str());
 		} else {
 			ROS_WARN_NAMED("Discovery", "service '%s' [%s] already exists, ignore", service->getURI().c_str(), sender.str().c_str());
 		}
 	}
-	p_component_list.update_ts(sender);
+	p_component_list.update_ts(p_own_address, sender);
 }
 
 void Discovery_ReceiveFSM::sendReportConfigurationAction(QueryConfiguration msg, Receive::Body::ReceiveRec transportData)
@@ -150,7 +150,7 @@ void Discovery_ReceiveFSM::sendReportConfigurationAction(QueryConfiguration msg,
 	unsigned short subsystem = (query_type < TYPE_SUBSYSTEM) ? 65535 : sender.getSubsystemID();
 	unsigned char node = (query_type < TYPE_NODE) ? 255 : sender.getNodeID();
 	unsigned char component = (query_type < TYPE_COMPONENT) ? 255 : sender.getComponentID();
-	std::vector<iop::DiscoveryComponent> components = p_component_list.get_components(subsystem, node, component);
+	std::vector<iop::DiscoveryComponent> components = p_component_list.get_components(p_own_address, subsystem, node, component);
 	std::vector<iop::DiscoveryComponent>::iterator itcmp;
 	for (itcmp = components.begin(); itcmp != components.end(); itcmp++) {
 		bool cmp_added = false;
@@ -199,8 +199,16 @@ void Discovery_ReceiveFSM::sendReportIdentificationAction(QueryIdentification ms
 		std::string name = "InvalidName";
 		if (query_type == TYPE_COMPONENT) {
 			name = ros::this_node::getName();
+			std::size_t pos = name.find_last_of("/");
+			if (pos != std::string::npos) {
+				name.replace(0, pos+1, "");
+			}
 		} else if (query_type == TYPE_NODE)	{
 			name = name_node;
+			std::size_t pos = name.find_last_of("/");
+			if (pos != std::string::npos) {
+				name.replace(0, pos+1, "");
+			}
 		} else if (query_type == TYPE_SUBSYSTEM) {
 			name = name_subsystem;
 		} else if (query_type == TYPE_SYSTEM) {
@@ -212,9 +220,9 @@ void Discovery_ReceiveFSM::sendReportIdentificationAction(QueryIdentification ms
 		report_msg.getBody()->getReportIdentificationRec()->setType(system_type);
 		report_msg.getBody()->getReportIdentificationRec()->setIdentification(name);
 		sendJausMessage(report_msg, sender);
-		p_component_list.update_ts(sender);
+		p_component_list.update_ts(p_own_address, sender);
 	} else {
-		printf("[Discovery] sendReportIdentification own system_id_type: %d>%d (query_type), do not response\n", system_id, query_type);
+		ROS_WARN_ONCE_NAMED("Discovery", "sendReportIdentification own system_id_type: %d>%d (query_type), do not response", system_id, query_type);
 	}
 }
 
@@ -225,7 +233,7 @@ void Discovery_ReceiveFSM::sendReportServiceListAction(QueryServiceList msg, Rec
 		ROS_DEBUG_NAMED("Discovery", "sendReportServiceList to %s", sender.str().c_str());
 		ReportServiceList report_msg;
 		int cnt_services = 0;
-		std::vector<iop::DiscoveryComponent> components = p_component_list.get_components();
+		std::vector<iop::DiscoveryComponent> components = p_component_list.get_components(p_own_address);
 		std::vector<iop::DiscoveryComponent>::iterator itcmp;
 		for (itcmp = components.begin(); itcmp != components.end(); itcmp++) {
 			JausAddress addr = itcmp->address;
@@ -250,7 +258,7 @@ void Discovery_ReceiveFSM::sendReportServiceListAction(QueryServiceList msg, Rec
 		ROS_DEBUG_NAMED("Discovery", "	report services with %d services", cnt_services);
 		sendJausMessage( report_msg, sender );
 	} else {
-		ROS_WARN_NAMED("Discovery", "ignore QueryServiceList from %s, since own system_id is not SYSTEM(1)", sender.str().c_str());
+		ROS_WARN_ONCE_NAMED("Discovery", "ignore QueryServiceList from %s, since own system_id is not SYSTEM(1)", sender.str().c_str());
 	}
 }
 
@@ -349,7 +357,7 @@ void Discovery_ReceiveFSM::sendReportServicesAction(QueryServices msg, Receive::
 		int cnt_nodes = 0;
 		int cnt_cmps = 0;
 		int cnt_srvs = 0;
-		std::vector<iop::DiscoveryComponent> components = p_component_list.get_components();
+		std::vector<iop::DiscoveryComponent> components = p_component_list.get_components(p_own_address);
 		std::vector<iop::DiscoveryComponent>::iterator itcmp;
 		for (itcmp = components.begin(); itcmp != components.end(); itcmp++) {
 			JausAddress addr = itcmp->address;
