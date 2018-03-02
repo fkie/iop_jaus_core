@@ -120,6 +120,7 @@ void DiscoveryClient_ReceiveFSM::setDiscoveryFSM(Discovery_ReceiveFSM *discovery
 void DiscoveryClient_ReceiveFSM::handleQueryIdentificationAction(QueryIdentification msg, Receive::Body::ReceiveRec transportData)
 {
 	if (p_discovery_fsm != NULL) {
+		throw std::runtime_error("we have a discovery service, it should respond");
 		ROS_WARN_NAMED("DiscoveryClient", "QueryIdentification received although discovery service defined!");
 		// TODO forward to discovery service
 		//p_discovery_fsm->sendReportIdentificationAction(msg, transportData);
