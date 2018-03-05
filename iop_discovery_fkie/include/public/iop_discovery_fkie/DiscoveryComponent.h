@@ -39,6 +39,7 @@ public:
 	DiscoveryComponent(JausAddress address);
 	bool add_service(std::string service_uri, unsigned char major_version, unsigned char minor_version=255);
 	std::vector<DiscoveryServiceDef> get_services();
+	bool has_service(std::string uri);
 	// comparable for the map
 	bool operator<( const DiscoveryComponent& other) const;
 	bool operator==( const DiscoveryComponent& other) const;

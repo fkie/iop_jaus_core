@@ -43,6 +43,12 @@ std::vector<DiscoveryServiceDef> DiscoveryComponent::get_services()
 {
 	return p_services.get_services();
 }
+
+bool DiscoveryComponent::has_service(std::string uri)
+{
+	return p_services.has_service(uri);
+}
+
 // comparable for the map
 bool DiscoveryComponent::operator<( const DiscoveryComponent& other) const
 {

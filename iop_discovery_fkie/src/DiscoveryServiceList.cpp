@@ -46,3 +46,14 @@ std::vector<DiscoveryServiceDef> DiscoveryServiceList::get_services()
 {
 	return p_services;
 }
+
+bool DiscoveryServiceList::has_service(std::string uri)
+{
+	std::vector<DiscoveryServiceDef>::iterator it;
+	for (it = p_services.begin(); it != p_services.end(); it++) {
+		if (it->service_uri.compare(uri) == 0) {
+			return true;
+		}
+	}
+	return false;
+}

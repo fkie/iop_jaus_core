@@ -464,4 +464,9 @@ void Discovery_ReceiveFSM::sendReportSubsystemListAction(QuerySubsystemList msg,
 	}
 }
 
+std::vector<iop::DiscoveryComponent> Discovery_ReceiveFSM::getComponents(std::string uri)
+{
+	return p_component_list.get_components(p_own_address, uri);
+}
+
 };

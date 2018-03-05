@@ -77,6 +77,7 @@ public:
 	void registerService(int minver, int maxver, std::string serviceuri, JausAddress address);
 	void registerSubsystem(JausAddress address);
 	int getSystemID() { return system_id; }
+	std::vector<iop::DiscoveryComponent> getComponents(std::string uri);
 
 	Discovery_ReceiveFSMContext *context;
 

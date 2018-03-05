@@ -42,6 +42,7 @@ public:
 	bool update_ts(JausAddress discovery_service, JausAddress component);
 	bool update_ts(JausAddress discovery_service, unsigned short subsystem, unsigned char node=255);
 	std::vector<DiscoveryComponent> get_components(JausAddress discovery_service, unsigned short subsystem=65535, unsigned char node=255, unsigned char component=255);
+	std::vector<DiscoveryComponent> get_components(JausAddress discovery_service, std::string uri);
 	void remove_discovery_service(JausAddress addr);
 	std::vector<JausAddress> get_discovery_services();
 

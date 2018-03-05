@@ -131,6 +131,19 @@ std::vector<DiscoveryComponent> DiscoveryComponentList::get_components(JausAddre
 	return result;
 }
 
+std::vector<DiscoveryComponent> DiscoveryComponentList::get_components(JausAddress discovery_service, std::string uri)
+{
+	std::vector<DiscoveryComponent> result;
+	std::vector<DiscoveryComponent>& components = p_get_components(discovery_service);
+	std::vector<iop::DiscoveryComponent>::iterator itcmp;
+	for (itcmp = components.begin(); itcmp != components.end(); itcmp++) {
+		if (itcmp->has_service(uri)) {
+			result.push_back(*itcmp);
+		}
+	}
+	return result;
+}
+
 void DiscoveryComponentList::remove_discovery_service(JausAddress addr)
 {
 	std::map<JausAddress, std::vector<DiscoveryComponent> >::iterator it;
