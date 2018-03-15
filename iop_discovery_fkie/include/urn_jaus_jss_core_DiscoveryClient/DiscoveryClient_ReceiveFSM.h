@@ -172,8 +172,8 @@ protected:
 	std::vector<DiscoverItem> p_discover_services;
 	void pRegistrationFinished();
 	void pCheckTimer();
-	JausAddress pGetService(ReportServices &msg, iop::DiscoveryServiceDef service, unsigned short subsystem);
-	JausAddress pGetService(ReportServiceList &msg, iop::DiscoveryServiceDef service, unsigned short subsystem);
+	std::vector<JausAddress> pGetServices(ReportServices &msg, iop::DiscoveryServiceDef service, unsigned short subsystem);
+	std::vector<JausAddress> pGetServices(ReportServiceList &msg, iop::DiscoveryServiceDef service, unsigned short subsystem);
 	void pTimeoutCallback(const ros::WallTimerEvent& event);
 	bool pHasToDiscover(unsigned short subsystem_id);
 	void pInformDiscoverCallbacks(iop::DiscoveryServiceDef &service, JausAddress &address);

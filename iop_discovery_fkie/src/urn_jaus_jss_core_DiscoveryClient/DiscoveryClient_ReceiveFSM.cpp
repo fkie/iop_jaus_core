@@ -177,8 +177,9 @@ void DiscoveryClient_ReceiveFSM::pCheckTimer()
 	}
 }
 
-JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, iop::DiscoveryServiceDef service, unsigned short subsystem)
+std::vector<JausAddress> DiscoveryClient_ReceiveFSM::pGetServices(ReportServices &msg, iop::DiscoveryServiceDef service, unsigned short subsystem)
 {
+	std::vector<JausAddress> result;
 	ReportServices::Body::NodeList *node_list = msg.getBody()->getNodeList();
 	ROS_DEBUG_NAMED("DiscoveryClient", "pGetService search: %s, %d", service.service_uri.c_str(), subsystem);
 	for (unsigned int n = 0; n < node_list->getNumberOfElements(); n++) {
@@ -195,20 +196,17 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServices &msg, iop::Di
 				if (service.service_uri.compare(service_rec->getURI()) == 0
 						&& service.major_version == service_rec->getMajorVersionNumber()
 						&& (service.minor_version == service_rec->getMinorVersionNumber() || service.minor_version == 255)) {
-					JausAddress address(0);
-					address.setSubsystemID(subsystem);
-					address.setNodeID(node->getNodeID());
-					address.setComponentID(component->getComponentID());
-					return address;
+					result.push_back(JausAddress(subsystem, node->getNodeID(), component->getComponentID()));
 				}
 			}
 		}
 	}
-	return JausAddress(0);
+	return result;
 }
 
-JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, iop::DiscoveryServiceDef service, unsigned short subsystem)
+std::vector<JausAddress> DiscoveryClient_ReceiveFSM::pGetServices(ReportServiceList &msg, iop::DiscoveryServiceDef service, unsigned short subsystem)
 {
+	std::vector<JausAddress> result;
 	ReportServiceList::Body::SubsystemList *ssys_list = msg.getBody()->getSubsystemList();
 	for (unsigned int s = 0; s < ssys_list->getNumberOfElements(); s++) {
 		ReportServiceList::Body::SubsystemList::SubsystemSeq *ssystems = ssys_list->getElement(s);
@@ -228,18 +226,14 @@ JausAddress DiscoveryClient_ReceiveFSM::pGetService(ReportServiceList &msg, iop:
 						if (service.service_uri.compare(service_rec->getURI()) == 0
 								&& service.major_version == service_rec->getMajorVersionNumber()
 								&& (service.minor_version == service_rec->getMinorVersionNumber() || service.minor_version == 255)) {
-							JausAddress address(0);
-							address.setSubsystemID(subsystem);
-							address.setNodeID(node->getNodeID());
-							address.setComponentID(component->getComponentID());
-							return address;
+							result.push_back(JausAddress(subsystem, node->getNodeID(), component->getComponentID()));
 						}
 					}
 				}
 			}
 		}
 	}
-	return JausAddress(0);
+	return result;
 }
 
 void DiscoveryClient_ReceiveFSM::appendServiceUri(std::string service_uri, unsigned char major_version, unsigned char minor_version)
@@ -429,22 +423,24 @@ void DiscoveryClient_ReceiveFSM::handleReportServiceListAction(ReportServiceList
 			ROS_DEBUG_NAMED("DiscoveryClient", "  discover %s, subsystem: %d", p_discover_services[i].service.service_uri.c_str(), p_discover_services[i].subsystem);
 		}
 	}
-	for (int i = 0; i < p_discover_services.size(); i++) {
+	for (int ds_idx = 0; ds_idx < p_discover_services.size(); ds_idx++) {
 //		if (!p_discover_services[i].discovered) {
-			unsigned short ssid = p_discover_services[i].subsystem;
+			unsigned short ssid = p_discover_services[ds_idx].subsystem;
 			if (ssid == 65535) {
 				ssid = transportData.getSourceID()->getSubsystemID();
 			}
 			if (ssid == transportData.getSourceID()->getSubsystemID()) {
-				JausAddress addr = this->pGetService(msg, p_discover_services[i].service, ssid);
-				if (addr.get() != 0) {
+				std::vector<JausAddress> srvs = this->pGetServices(msg, p_discover_services[ds_idx].service, ssid);
+				for (unsigned int addr_idx = 0; addr_idx < srvs.size(); addr_idx++) {
+					JausAddress addr = srvs[addr_idx];
 					// the service was found, forward the address to the callback
-					iop::DiscoveryServiceDef service = p_discover_services[i].service;
+					iop::DiscoveryServiceDef service = p_discover_services[ds_idx].service;
 					ROS_DEBUG_NAMED("DiscoveryClient", "service '%s' discovered @%d.%d.%d through service list", service.service_uri.c_str(), addr.getSubsystemID(), addr.getNodeID(), addr.getComponentID());
-					p_discover_services[i].discovered_in.insert(transportData.getSourceID()->getSubsystemID());
+					p_discover_services[ds_idx].discovered_in.insert(transportData.getSourceID()->getSubsystemID());
 					pInformDiscoverCallbacks(service, addr);
-				} else {
-					p_discover_services[i].discovered_in.erase(transportData.getSourceID()->getSubsystemID());
+				}
+				if (srvs.size() == 0) {
+					p_discover_services[ds_idx].discovered_in.erase(transportData.getSourceID()->getSubsystemID());
 				}
 			}
 //		}
@@ -513,22 +509,24 @@ void DiscoveryClient_ReceiveFSM::handleReportServicesAction(ReportServices msg, 
 			ROS_DEBUG_NAMED("DiscoveryClient", "  discover %s, subsystem: %d", p_discover_services[i].service.service_uri.c_str(), p_discover_services[i].subsystem);
 		}
 	}
-	for (int i = 0; i < p_discover_services.size(); i++) {
+	for (int ds_idx = 0; ds_idx < p_discover_services.size(); ds_idx++) {
 //		if (!p_discover_services[i].discovered) {
-			unsigned short ssid = p_discover_services[i].subsystem;
+			unsigned short ssid = p_discover_services[ds_idx].subsystem;
 			if (ssid == 65535) {
 				ssid = transportData.getSourceID()->getSubsystemID();
 			}
 			if (ssid == transportData.getSourceID()->getSubsystemID()) {
-				JausAddress addr = this->pGetService(msg, p_discover_services[i].service, ssid);
-				if (addr.get() != 0) {
+				std::vector<JausAddress> srvs = this->pGetServices(msg, p_discover_services[ds_idx].service, ssid);
+				for (unsigned int addr_idx = 0; addr_idx < srvs.size(); addr_idx++) {
+					JausAddress addr = srvs[addr_idx];
 					// the service was found, forward the address to the callback
-					iop::DiscoveryServiceDef service = p_discover_services[i].service;
+					iop::DiscoveryServiceDef service = p_discover_services[ds_idx].service;
 					ROS_DEBUG_NAMED("DiscoveryClient", "service '%s' discovered @%d.%d.%d through services old stile, using QueryServices", service.service_uri.c_str(), addr.getSubsystemID(), addr.getNodeID(), addr.getComponentID());
-					p_discover_services[i].discovered_in.insert(transportData.getSourceID()->getSubsystemID());
+					p_discover_services[ds_idx].discovered_in.insert(transportData.getSourceID()->getSubsystemID());
 					pInformDiscoverCallbacks(service, addr);
-				} else {
-					p_discover_services[i].discovered_in.erase(transportData.getSourceID()->getSubsystemID());
+				}
+				if (srvs.size() == 0) {
+					p_discover_services[ds_idx].discovered_in.erase(transportData.getSourceID()->getSubsystemID());
 				}
 			}
 //		}
