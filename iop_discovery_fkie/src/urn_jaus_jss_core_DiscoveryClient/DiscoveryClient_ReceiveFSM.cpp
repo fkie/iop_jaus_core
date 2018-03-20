@@ -81,6 +81,25 @@ void DiscoveryClient_ReceiveFSM::setupNotifications()
 	cfg.param("timeout_discover_service", p_timeout_discover_service, p_timeout_discover_service);
 	p_ros_interface.setup(*this);
 	p_ros_interface.set_discovery_timeout(p_timeout_discover_service);
+	XmlRpc::XmlRpcValue v;
+	cfg.param("unicast_subsystems", v, v);
+	if (v.getType() == XmlRpc::XmlRpcValue::TypeArray) {
+		for(unsigned int i = 0; i < v.size(); i++) {
+			std::string jaus_addr_str = v[i];
+			// parsce jaus address
+			int p1, p2, p3;
+			int scan_result = std::sscanf(jaus_addr_str.c_str(), "%d.%d.%d", &p1, &p2, &p3);
+			if (scan_result == 3) {
+				JausAddress jaus_addr(p1, p2, p3);
+				ROS_WARN("unicast `discovery` for %s. Please add `J%d = \"IPv4:3497\"` to AddressBook in JAUS configuration file. If already done, you can ignore this warning.", jaus_addr.str().c_str(), jaus_addr.get());
+				p_unicast_subsystems.push_back(jaus_addr);
+			} else {
+				ROS_WARN("invalid address format in unicast_subsystems: %s, should be subsystem.node.component", jaus_addr_str.c_str());
+			}
+		}
+	} else {
+		ROS_WARN("wrong ~unicast_subsystems parameter type! It should be an array with format [123.45.67, ...]");
+	}
 	ros::NodeHandle nh;
 	p_timeout_timer = nh.createWallTimer(ros::WallDuration(p_current_timeout), &DiscoveryClient_ReceiveFSM::pTimeoutCallback, this, false, false);
 	p_timeout_timer.start();
@@ -552,6 +571,11 @@ void DiscoveryClient_ReceiveFSM::sendQueryIdentificationAction()
 {
 	// remove expired subsystems (not responding to query identification messages)
 	p_check_for_timeout_discovery_service();
+	for (unsigned int jidx = 0; jidx < p_unicast_subsystems.size(); jidx++) {
+		// send discovery to unicast addresses
+		JausAddress addr = p_unicast_subsystems[jidx];
+		query_identification(TYPE_SUBSYSTEM, addr.getSubsystemID(), addr.getNodeID(), addr.getComponentID());
+	}
 	if (p_ros_interface.enabled()) {
 		// if ROS interface enabled we send component queries to get names for components
 		query_identification(TYPE_COMPONENT, 0xFFFF, 0xFF, 0xFF);

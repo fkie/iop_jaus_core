@@ -166,6 +166,7 @@ protected:
 	JTS::InternalEvent *p_timeout_event;
 	/// collect all requests to avoid too often requests
 	std::map<JausAddress, ServiceRequests> p_service_requests;
+	std::vector<JausAddress> p_unicast_subsystems;
 
 	std::map <iop::DiscoveryServiceDef, std::vector<boost::function<void (const std::string &, JausAddress &)> > > p_discover_callbacks;  // Service to discover, list with callbacks requested this service
 	boost::function<void (const std::string &, JausAddress &)> class_discovery_callback_;

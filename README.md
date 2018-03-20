@@ -102,6 +102,10 @@ _enable_ros_interface (bool_, (Default: false)
 
 > Publish the discovered services to the ROS network. On false the publisher are not created.
 
+_unicast_subsystems (list_, (Default: [])
+
+> A list of JAUS address (e.g. 123.45.67) of platform components with discovery service. It should be filled if your multicast communication does not work. It allows to discover this robot througth unicast communication. You need also to fill the `AddressBook` in jaus configuration file (usually nm.cfg in jaustoolset).
+> This functionality is currently experimental and can be extended in future.
 
 #### Publisher:
 
