@@ -89,6 +89,7 @@ bool DiscoveryComponentList::update_ts(JausAddress discovery_service, unsigned s
 			if (p_expired(it->ts_last_ident, now)) {
 				ROS_DEBUG_NAMED("Discovery", "remove expired services of %s", it->address.str().c_str());
 				components.erase(it);
+				it = components.begin();
 			} else {
 				it->ts_last_ident = now;
 				result = true;
