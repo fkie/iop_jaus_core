@@ -7,7 +7,8 @@ project(iop_discovery_fkie)
 find_package(catkin REQUIRED COMPONENTS
                     iop_events_fkie
                     iop_msgs_fkie
-                    roscpp)
+                    roscpp
+                    std_srvs)
 iop_init(COMPONENT_ID 0)
 iop_export_service(urn_jaus_jss_core_Discovery
                    urn_jaus_jss_core_DiscoveryClient)
@@ -21,6 +22,7 @@ catkin_package(
     CATKIN_DEPENDS
         iop_events_fkie
         iop_msgs_fkie
+        std_srvs
 )
 
 ###########
